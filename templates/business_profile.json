@@ -1,0 +1,51 @@
+{
+  "business": {
+    "name": "Your Business Name",
+    "category": "e.g. Artificial Jewellery",
+    "description": "One line: what you sell, to whom, at what price range",
+    "stage": 1,
+    "monthly_revenue_approx": "< ₹5L"
+  },
+  "platforms": {
+    "meesho": {
+      "active": true,
+      "seller_id": "",
+      "maturity": "new|growing|mature",
+      "focus": "describe current focus e.g. organic ranking, scaling ads"
+    },
+    "flipkart": {
+      "active": false,
+      "seller_id": "",
+      "maturity": "new|growing|mature",
+      "focus": ""
+    },
+    "amazon_india": {
+      "active": false,
+      "seller_id": "",
+      "maturity": "new|growing|mature",
+      "focus": ""
+    }
+  },
+  "current_focus": [
+    "e.g. reduce return rate on earrings",
+    "e.g. improve Meesho catalog quality score"
+  ],
+  "known_issues": [
+    "e.g. high return rate in Oct-Nov 2024"
+  ],
+  "constraints": [
+    "e.g. no budget for professional photography",
+    "e.g. cannot change pricing below ₹99"
+  ],
+  "data_source": {
+    "type": "csv",
+    "path": "../data/latest"
+  },
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-6"
+  },
+  "telegram": {
+    "allowed_chat_ids": []
+  }
+}
