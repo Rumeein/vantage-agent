@@ -29,7 +29,25 @@ Last updated: 2026-06-20
 
 ---
 
-## 1. What Vantage Is
+## 1. Product Vision
+
+**Vantage is a generic, reusable AI growth advisor — not a tool built only for Rumee.**
+
+Rumee Jewellery is the first business running on Vantage — the reference deployment. The product is designed so any ecommerce seller can run their own instance with zero code changes. Only `business_profile.json` and `.env` change between businesses.
+
+**What makes it reusable:**
+- `system_prompt.md` — generic expert persona, works for any Indian marketplace seller
+- `shared_learnings.json` — universal knowledge (Meesho CQS, Flipkart LQS, seasonal patterns) shared across all businesses
+- `business_profile.json` — the only file that is business-specific (name, stage, platforms, focus, LLM choice)
+- Memory files (`experiments.json`, `learnings.json`) — per-business, live in the business's own repo
+
+**Monetisation path:** Sellers self-host for free (Groq is free, GitHub is free). A managed version — where we run Vantage as a service for other sellers — is a viable paid product on the same codebase. Each seller gets their own Discord server, GitHub instance, and business profile.
+
+**Rule for development:** Any feature added to Vantage must work for any seller, not just Rumee. Rumee-specific values (webhook URLs, channel IDs, repo paths) live only in `business_profile.json` and `.env` — never in the product code.
+
+---
+
+## 2. What Vantage Is
 
 An AI growth advisor for ecommerce sellers. It reads business data, identifies problems and opportunities, designs experiments with measurable hypotheses, tracks outcomes, and accumulates learnings over time. It is not a one-off analysis tool — it gets smarter the longer it runs.
 
