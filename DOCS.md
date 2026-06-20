@@ -108,7 +108,7 @@ D:\Claude RuMee Dashbord\vantage\
 - `https://raw.githubusercontent.com/Rumeein/rumee-dashboard/main/rumee_db_summary.csv`
 - `https://raw.githubusercontent.com/Rumeein/rumee-dashboard/main/rumee_db_daily.csv`
 
-**Status: context_builder.py still reads local file path — switch to HTTP fetch is pending.**
+**Status: DONE (2026-06-20)** — `context_builder.py` detects HTTP URLs and fetches via `urllib.request`. `business_profile.json` `db_path` set to GitHub raw URL base.
 
 ---
 
@@ -320,7 +320,7 @@ D:\vantage-agent\eval\
 | fk_skus column rename (data standardization) | Done (2026-06-20) |
 | system_prompt.md — Data Schema section | Done (2026-06-20) |
 | system_prompt.md — Discord response format | Done (2026-06-20) |
-| context_builder.py reads from GitHub raw URLs | **Pending** |
+| context_builder.py reads from GitHub raw URLs | Done (2026-06-20) |
 | memory_writer.py commits + pushes to GitHub | **Pending** |
 | Nightly audit on GitHub Actions | **Pending** |
 | Discord bot on cloud server (24/7) | **Pending** |
