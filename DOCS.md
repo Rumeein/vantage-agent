@@ -247,7 +247,7 @@ All memory lives in `D:\Claude RuMee Dashbord\vantage\memory\`:
 | `learnings.json` | What works for Rumee specifically. Also holds alerts from last run. |
 | `activity_log.jsonl` | One JSON line per event — every run, every Discord message, every experiment update |
 
-**Decision (2026-06-20):** After every write, memory files must be committed and pushed to the GitHub repo. Nothing stored only on local disk. **Pending implementation in memory_writer.py.**
+**Decision (2026-06-20):** After every write, memory files are committed and pushed to the GitHub repo. Nothing stored only on local disk. **DONE — implemented in memory_writer.py.**
 
 ---
 
@@ -321,7 +321,7 @@ D:\vantage-agent\eval\
 | system_prompt.md — Data Schema section | Done (2026-06-20) |
 | system_prompt.md — Discord response format | Done (2026-06-20) |
 | context_builder.py reads from GitHub raw URLs | Done (2026-06-20) |
-| memory_writer.py commits + pushes to GitHub | **Pending** |
+| memory_writer.py commits + pushes to GitHub | Done (2026-06-20) |
 | Nightly audit on GitHub Actions | **Pending** |
 | Discord bot on cloud server (24/7) | **Pending** |
 | Eval loop (automated training) | Not started |
