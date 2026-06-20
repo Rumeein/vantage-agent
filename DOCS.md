@@ -322,7 +322,7 @@ D:\vantage-agent\eval\
 | system_prompt.md — Discord response format | Done (2026-06-20) |
 | context_builder.py reads from GitHub raw URLs | Done (2026-06-20) |
 | memory_writer.py commits + pushes to GitHub | Done (2026-06-20) |
-| Nightly audit on GitHub Actions | **Pending** |
+| Nightly audit on GitHub Actions | Blocked — intentionally. Only after eval loop confirms output quality. |
 | Discord bot on cloud server (24/7) | **Pending** |
 | Eval loop (automated training) | Not started |
 | onboard.py (new business onboarding) | Not started |
