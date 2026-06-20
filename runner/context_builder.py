@@ -18,7 +18,9 @@ Table sets per mode:
 """
 
 import csv
+import io
 import json
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -56,18 +58,23 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
     memory = base / 'memory'
 
     profile = _load_json(base / 'business_profile.json')
-    db_path = Path(profile.get('data_source', {}).get('db_path', ''))
+    db_path = profile.get('data_source', {}).get('db_path', '')
 
     requested = tables or _PASS_TABLES.get(mode, _PASS_TABLES['nightly'])
 
     summary_wanted = [t for t in requested if t in _SUMMARY_TABLES]
     daily_wanted   = [t for t in requested if t in _DAILY_TABLES]
 
+    def _db_file(name):
+        if db_path.startswith('http'):
+            return f'{db_path.rstrip("/")}/{name}'
+        return Path(db_path) / name
+
     db_data = {}
     if summary_wanted and db_path:
-        db_data.update(_load_db_csv(db_path / 'rumee_db_summary.csv', summary_wanted))
+        db_data.update(_load_db_csv(_db_file('rumee_db_summary.csv'), summary_wanted))
     if daily_wanted and db_path:
-        db_data.update(_load_db_csv(db_path / 'rumee_db_daily.csv', daily_wanted))
+        db_data.update(_load_db_csv(_db_file('rumee_db_daily.csv'), daily_wanted))
 
     sections = []
     for t in requested:
@@ -124,16 +131,22 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
 
 # ─── DB loading ───────────────────────────────────────────────────────────────
 
-def _load_db_csv(path: Path, wanted_tables: list) -> dict:
-    """Parse a DB CSV and return {table_name: [dict, ...]} for requested tables only."""
-    if not path.exists():
-        return {}
+def _load_db_csv(path, wanted_tables: list) -> dict:
+    """Parse a DB CSV (local path or HTTP URL) and return {table_name: [dict, ...]}."""
     wanted = set(wanted_tables)
     result = defaultdict(list)
     headers = None
 
-    with open(path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
+    try:
+        if isinstance(path, str) and path.startswith('http'):
+            with urllib.request.urlopen(path, timeout=15) as resp:
+                content = resp.read().decode('utf-8')
+            reader = csv.reader(io.StringIO(content))
+        else:
+            if not Path(path).exists():
+                return {}
+            reader = csv.reader(open(path, 'r', encoding='utf-8'))
+
         for row in reader:
             if not row:
                 continue
@@ -146,6 +159,8 @@ def _load_db_csv(path: Path, wanted_tables: list) -> dict:
             for i, h in enumerate(headers):
                 rec[h] = row[i + 1] if i + 1 < len(row) else ''
             result[row[0]].append(rec)
+    except Exception as e:
+        print(f'Warning: could not load {path}: {e}')
 
     return dict(result)
 
