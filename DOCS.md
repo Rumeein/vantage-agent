@@ -158,7 +158,7 @@ Reads `provider` and `model` from `business_profile.json`. Supports Anthropic, O
 
 ### discord_bot.py
 
-Discord Q&A bot. Watches channel ID `1517718649429954691` (#pipeline on Rumee Discord server).
+Two-way Q&A bot. Holds a permanent WebSocket connection to Discord. Watches channel ID `1517718649429954691` (#pipeline on Rumee Discord server). You type a question → it reads it → replies with full business context.
 
 **Commands:**
 | Command | What it does |
@@ -195,7 +195,24 @@ Set in `D:\Claude RuMee Dashbord\vantage\business_profile.json`:
 
 ---
 
-## 7. Discord Bot
+## 7. Discord Architecture — Full Picture
+
+All Discord communication uses one Rumee Discord server with separate channels per purpose.
+
+| Component | Type | Channel | Direction | Needs cloud server? |
+|---|---|---|---|---|
+| Vantage bot (`discord_bot.py`) | Bot — token-based, WebSocket | #pipeline | Two-way — reads messages, replies | **Yes** — must be alive 24/7 |
+| AutoSync notification | Webhook — HTTP POST only | #auto-sync | One-way — posts only, never reads | **No** — Chrome extension fires it once per sync run |
+
+**Why the bot needs a cloud server:**
+The bot holds an open WebSocket connection to Discord continuously. When you type in #pipeline, Discord pushes the message to the bot in real time. If the bot process dies, nobody is listening. Cloud hosting (Fly.io) keeps the process alive even when the local PC is off.
+
+**Why the webhook does not need a server:**
+A webhook is a single HTTP POST. AutoSync fires it once when sync completes, Discord receives it, message appears. Nothing needs to stay running. The Chrome extension is the sender — it posts and moves on.
+
+---
+
+## 8. Discord Bot
 
 **Status: Built and tested locally. Not yet hosted on cloud server.**
 
