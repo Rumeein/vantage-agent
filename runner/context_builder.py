@@ -162,7 +162,18 @@ def _format_table(table_name: str, rows: list) -> str:
     limit = _TABLE_LIMITS.get(table_name)
 
     if table_name == 'fk_skus':
-        rows = sorted(rows, key=lambda r: _to_float(r.get('ad_revenue')) or 0, reverse=True)
+        _fk_skus_rename = {
+            'ad_revenue':  'ad_attributed_revenue_rs',
+            'conversions': 'units_sold_via_ads',
+            'ad_views':    'ad_impressions',
+            'settlement':  'revenue_earned_rs',
+        }
+        _fk_skus_drop = {'stock'}
+        rows = [
+            {_fk_skus_rename.get(k, k): v for k, v in r.items() if k not in _fk_skus_drop}
+            for r in rows
+        ]
+        rows = sorted(rows, key=lambda r: _to_float(r.get('ad_attributed_revenue_rs')) or 0, reverse=True)
     elif table_name == 'fk_keywords':
         rows = sorted(rows, key=lambda r: _to_float(r.get('views')) or 0, reverse=True)
     elif table_name == 'me_claims':
