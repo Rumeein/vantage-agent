@@ -126,11 +126,18 @@ def _parse_or_exit(instance_path: str, raw: str, mode: str) -> dict:
 
 
 def _parse_json_response(raw: str) -> dict:
+    import re
     raw = raw.strip()
-    if raw.startswith('```'):
-        lines = raw.split('\n')
-        raw = '\n'.join(lines[1:-1]) if lines[-1].strip() == '```' else '\n'.join(lines[1:])
-    return json.loads(raw)
+    # Try fenced code block anywhere in response
+    m = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', raw, re.DOTALL)
+    if m:
+        return json.loads(m.group(1))
+    # Try outermost { ... }
+    start = raw.find('{')
+    end = raw.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        return json.loads(raw[start:end + 1])
+    raise ValueError("No JSON object found in response")
 
 
 def _now() -> str:
