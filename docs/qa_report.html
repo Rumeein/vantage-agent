@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vantage QA Report — 2026-06-21 09:55 UTC</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         max-width: 900px; margin: 40px auto; padding: 0 20px; color: #1f2328; background: #fff; }
+  h1   { font-size: 1.4em; border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }
+  .meta { color: #656d76; font-size: 0.85em; margin-bottom: 30px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 30px; font-size: 0.9em; }
+  th, td { padding: 8px 12px; border: 1px solid #d0d7de; text-align: left; }
+  th { background: #f6f8fa; }
+  .card { border: 1px solid #d0d7de; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+  .card-header { background: #f6f8fa; padding: 12px 16px; font-weight: 600; }
+  .card-header span { font-size: 0.8em; font-weight: normal; color: #656d76; margin-left: 8px; }
+  .answer { padding: 12px 16px; border-top: 1px solid #d0d7de; background: #fff;
+             white-space: pre-wrap; font-size: 0.88em; max-height: 200px; overflow-y: auto;
+             border-bottom: 1px solid #d0d7de; }
+  .judges { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .judge  { padding: 10px 16px; }
+  .judge + .judge { border-left: 1px solid #d0d7de; }
+  .judge-name { font-size: 0.75em; color: #656d76; margin-bottom: 4px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px;
+            font-size: 0.8em; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+  .reason { font-size: 0.82em; color: #1f2328; }
+  .split-note { background: #fff8c5; border: 1px solid #d4a72c; border-radius: 6px;
+                 padding: 8px 14px; font-size: 0.88em; margin-bottom: 20px; }
+  .card.split .card-header { background: #fff8c5; }
+</style>
+</head>
+<body>
+<h1>Vantage — Judge Comparison Report</h1>
+<p class="meta">Run: 2026-06-21 09:55 UTC &nbsp;|&nbsp; Generated: 2026-06-21 09:55 UTC &nbsp;|&nbsp; 5 questions</p>
+
+<h2>Summary</h2>
+<table>
+<tr><th>Judge</th><th>Pass</th><th>Partial</th><th>Fail</th><th>Error</th><th>Pass rate</th></tr>
+<tr><td>Gemini 2.5 Flash Lite</td><td>0</td><td>0</td><td>5</td><td>0</td><td><b>0%</b></td></tr>
+<tr><td>Qwen3-32b</td><td>0</td><td>0</td><td>5</td><td>0</td><td><b>0%</b></td></tr>
+<tr><td>Llama 3.1 8b</td><td>0</td><td>1</td><td>3</td><td>0</td><td><b>0%</b></td></tr>
+
+</table>
+
+<p class="split-note">Split verdicts: q02, q03 — judges disagree on these</p>
+
+<h2>Questions &amp; Answers</h2>
+<div class="card">
+  <div class="card-header">[q01] Analyze DJ-5 Bahubali's complete performance on Flipkart.</div>
+  <div class="answer">ERROR: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kvj8dtq7e88aavb9kenn99w3` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96836, Requested 7343. Please try again in 1h0m10.656s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}</div>
+  <div class="judges"><div class="judge"><div class="judge-name">Gemini 2.5 Flash Lite</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Vantage returned a rate limit error and did not provide any performance analysis for DJ-5 Bahubali.</div></div><div class="judge"><div class="judge-name">Qwen3-32b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">The response was an error message without any analysis of the product's performance.</div></div><div class="judge"><div class="judge-name">Llama 3.1 8b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">mentions an error message instead of providing performance data</div></div></div>
+</div>
+<div class="card split">
+  <div class="card-header">[q02] DJ-14 has the highest return rate on Meesho. What are the possible causes and what do you check first? &nbsp;<span style="color:#9a6700">⚠ split</span></div>
+  <div class="answer">ERROR: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kvj8dtq7e88aavb9kenn99w3` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96820, Requested 7353. Please try again in 1h0m5.472s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}</div>
+  <div class="judges"><div class="judge"><div class="judge-name">Gemini 2.5 Flash Lite</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">The AI returned an error message indicating a rate limit was reached and could not provide an answer.</div></div><div class="judge"><div class="judge-name">Qwen3-32b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Returned an error message instead of a root cause analysis and investigation plan</div></div><div class="judge"><div class="judge-name">Llama 3.1 8b</div><span class="badge" style="color:#6e7781;background:#f6f8fa">FAIL</span><div class="reason">The model provides an error message but fails to diagnose or address the specific question about possible causes, showing no synthesis of knowledge.</div></div></div>
+</div>
+<div class="card split">
+  <div class="card-header">[q03] DJ-5 has 1,415 units_sold_via_ads on Flipkart. Does that make it our top seller? &nbsp;<span style="color:#9a6700">⚠ split</span></div>
+  <div class="answer">ERROR: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kvj8dtq7e88aavb9kenn99w3` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96808, Requested 7352. Please try again in 59m54.24s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}</div>
+  <div class="judges"><div class="judge"><div class="judge-name">Gemini 2.5 Flash Lite</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Vantage returned an error message instead of answering the question.</div></div><div class="judge"><div class="judge-name">Qwen3-32b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">The response was an error message instead of addressing the question.</div></div><div class="judge"><div class="judge-name">Llama 3.1 8b</div><span class="badge" style="color:#9a6700;background:#fff8c5">partial</span><div class="reason">Although the response acknowledges the error and provides a technical reason, it does not explicitly address the question or clarify units_sold_via_ads data.</div></div></div>
+</div>
+<div class="card">
+  <div class="card-header">[q04] OG DJ-5 and DJ-5 Bahubali are both listed on Flipkart. Are they competing with each other?</div>
+  <div class="answer">ERROR: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kvj8dtq7e88aavb9kenn99w3` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96795, Requested 7353. Please try again in 59m43.872s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}</div>
+  <div class="judges"><div class="judge"><div class="judge-name">Gemini 2.5 Flash Lite</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Vantage returned a rate limit error and could not answer the question.</div></div><div class="judge"><div class="judge-name">Qwen3-32b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">The error response does not address the question and lacks any product analysis or comparison.</div></div><div class="judge"><div class="judge-name">Llama 3.1 8b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Treats these as completely independent unrelated products</div></div></div>
+</div>
+<div class="card">
+  <div class="card-header">[q05] I have 3 hours this week to improve one thing. What is the highest ROI action across all SKUs?</div>
+  <div class="answer">ERROR: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kvj8dtq7e88aavb9kenn99w3` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96782, Requested 7351. Please try again in 59m30.912s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}</div>
+  <div class="judges"><div class="judge"><div class="judge-name">Gemini 2.5 Flash Lite</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Vantage returned an API error instead of providing an action plan.</div></div><div class="judge"><div class="judge-name">Qwen3-32b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Vantage returned an error instead of a recommendation</div></div><div class="judge"><div class="judge-name">Llama 3.1 8b</div><span class="badge" style="color:#cf222e;background:#ffebe9">fail</span><div class="reason">Lists multiple errors instead of a single improvement recommendation</div></div></div>
+</div>
+</body>
+</html>
