@@ -1,19 +1,19 @@
 """
 Assembles context from the business instance folder into a single string
-for the LLM. Reads business data directly from dashboard DB CSV files.
+for the LLM. Reads business data from Firestore (type=firestore) or local/URL
+CSV files (type=db), as configured in business_profile.json["data_source"].
 
-DB path is read from business_profile.json["data_source"]["db_path"].
-
-DB files (in db_path):
-  rumee_db_summary.csv  — fk_monthly, me_monthly, fk_skus, me_skus,
-                          me_return_reasons, fk_pairs, fk_keywords,
-                          me_claims, me_views, me_state_summary, fk_zone_summary
-  rumee_db_daily.csv    — fk_daily, me_daily (per-SKU rows, aggregated by date in context)
+Firestore collections (rumee-dashboard-6c4c6):
+  rumee_db/summary          — all summary tables (fk_monthly, me_monthly, fk_skus, …)
+  rumee_fk_daily/{YYYY_MM}  — fk_daily rows for that month
+  rumee_me_daily/{YYYY_MM}  — me_daily rows for that month
+  rumee_orders_daily/{YYYY_MM} — fk_orders_daily rows
+  rumee_orders_sku/{YYYY_MM}   — fk_orders_sku rows
 
 Table sets per mode:
-  nightly       — fk_monthly, me_monthly, fk_skus (top 30), me_skus, me_return_reasons, me_views
-  monthly_sku   — fk_monthly, me_monthly, fk_skus (top 30), me_skus, me_state_summary, fk_zone_summary, fk_pairs
-  recent_daily  — fk_daily, me_daily (last 30 days, aggregated by date)
+  nightly       — fk_monthly, me_monthly, fk_skus (top 20), me_skus, me_return_reasons, me_views, fk_orders_daily
+  monthly_sku   — fk_monthly, me_monthly, fk_skus (top 20), me_skus, me_state_summary, fk_zone_summary, fk_pairs
+  recent_daily  — fk_daily, me_daily (last 30 days, aggregated by date), fk_orders_daily
   state_kw      — me_views, fk_keywords (top 40), me_return_reasons, me_claims (last 20)
 """
 
@@ -25,27 +25,31 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-ACTIVITY_LOG_TAIL = 50
+ACTIVITY_LOG_TAIL = 15
 
 _SUMMARY_TABLES = frozenset({
     'fk_monthly', 'me_monthly', 'fk_skus', 'me_skus',
     'me_return_reasons', 'fk_pairs', 'fk_keywords',
     'me_claims', 'me_views', 'me_state_summary', 'fk_zone_summary', 'config',
 })
-_DAILY_TABLES = frozenset({'fk_daily', 'me_daily'})
+_DAILY_TABLES   = frozenset({'fk_daily', 'me_daily'})
+_FK_ORDERS_TABLES = frozenset({'fk_orders_daily', 'fk_orders_sku'})
 
 _PASS_TABLES = {
-    'nightly':      ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_return_reasons', 'me_views'],
+    'nightly':      ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_return_reasons', 'me_views', 'fk_orders_daily'],
     'monthly_sku':  ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_state_summary', 'fk_zone_summary', 'fk_pairs'],
-    'recent_daily': ['fk_daily', 'me_daily'],
+    'recent_daily': ['fk_daily', 'me_daily', 'fk_orders_daily'],
     'state_kw':     ['me_views', 'fk_keywords', 'me_return_reasons', 'me_claims'],
 }
 
 # Max rows to include per table (None = no limit)
 _TABLE_LIMITS = {
-    'fk_skus':     30,
-    'fk_keywords': 40,
-    'me_claims':   20,
+    'fk_skus':          20,
+    'me_skus':          30,
+    'fk_keywords':      40,
+    'me_claims':        20,
+    'fk_orders_daily':  30,
+    'fk_orders_sku':    50,
 }
 
 
@@ -53,28 +57,99 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
     """
     Returns (context_string, business_profile_dict).
     tables overrides the default table set for the given mode.
+    mode='brief' reads daily_brief.txt instead of raw CSV tables (run brief_builder.py first).
     """
     base = Path(instance_path)
     memory = base / 'memory'
 
     profile = _load_json(base / 'business_profile.json')
-    db_path = profile.get('data_source', {}).get('db_path', '')
+
+    if mode == 'brief':
+        brief_file = base / 'daily_brief.txt'
+        if not brief_file.exists():
+            raise FileNotFoundError(
+                f"daily_brief.txt not found at {brief_file}. Run brief_builder.py first."
+            )
+        brief_content = brief_file.read_text(encoding='utf-8')
+        experiments = _load_json(memory / 'experiments.json')
+        learnings   = _load_json(memory / 'learnings.json')
+        activity    = _load_activity_log(memory / 'activity_log.jsonl', tail=ACTIVITY_LOG_TAIL)
+        context = f"""## CONTEXT LOADED: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}
+## MODE: brief
+
+---
+
+## BUSINESS PROFILE
+{json.dumps(profile, indent=2)}
+
+---
+
+## DATA (pre-processed brief)
+
+{brief_content}
+
+---
+
+## ACTIVE & RECENT EXPERIMENTS
+{json.dumps(experiments, indent=2)}
+
+---
+
+## ACCUMULATED LEARNINGS
+{json.dumps(learnings, indent=2)}
+
+---
+
+## RECENT ACTIVITY LOG (last {ACTIVITY_LOG_TAIL} events)
+{activity}
+
+---
+
+## TASK: Perform the nightly analysis. Return structured JSON only as per output schema.""".strip()
+        return context, profile
+
+    ds      = profile.get('data_source', {})
+    ds_type = ds.get('type', 'db')
 
     requested = tables or _PASS_TABLES.get(mode, _PASS_TABLES['nightly'])
 
-    summary_wanted = [t for t in requested if t in _SUMMARY_TABLES]
-    daily_wanted   = [t for t in requested if t in _DAILY_TABLES]
-
-    def _db_file(name):
-        if db_path.startswith('http'):
-            return f'{db_path.rstrip("/")}/{name}'
-        return Path(db_path) / name
+    summary_wanted   = [t for t in requested if t in _SUMMARY_TABLES]
+    daily_wanted     = [t for t in requested if t in _DAILY_TABLES]
+    fk_orders_wanted = [t for t in requested if t in _FK_ORDERS_TABLES]
 
     db_data = {}
-    if summary_wanted and db_path:
-        db_data.update(_load_db_csv(_db_file('rumee_db_summary.csv'), summary_wanted))
-    if daily_wanted and db_path:
-        db_data.update(_load_db_csv(_db_file('rumee_db_daily.csv'), daily_wanted))
+
+    if ds_type == 'firestore':
+        project_id = ds.get('project_id', '')
+        api_key    = ds.get('api_key', '')
+        if summary_wanted:
+            db_data.update(_parse_db_csv(
+                _fs_fetch_doc(project_id, api_key, 'rumee_db', 'summary'),
+                summary_wanted,
+            ))
+        if daily_wanted:
+            fk_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_fk_daily')
+            me_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_me_daily')
+            db_data.update(_parse_db_csv(fk_csv + '\n' + me_csv, daily_wanted))
+        if fk_orders_wanted:
+            ord_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_daily')
+            sku_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_sku', n_months=1)
+            db_data.update(_parse_db_csv(ord_csv + '\n' + sku_csv, fk_orders_wanted))
+    else:
+        db_path = ds.get('db_path', '')
+
+        def _db_file(name):
+            if db_path.startswith('http'):
+                return f'{db_path.rstrip("/")}/{name}'
+            return Path(db_path) / name
+
+        if summary_wanted and db_path:
+            db_data.update(_load_db_csv(_db_file('rumee_db_summary.csv'), summary_wanted))
+        if daily_wanted and db_path:
+            db_data.update(_load_db_csv(_db_file('rumee_db_daily.csv'), daily_wanted))
+        if fk_orders_wanted and db_path:
+            # fk_orders tables are in rumee_db_daily.csv, not a separate file
+            db_data.update(_load_db_csv(_db_file('rumee_db_daily.csv'), fk_orders_wanted))
 
     sections = []
     for t in requested:
@@ -133,21 +208,29 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
 
 def _load_db_csv(path, wanted_tables: list) -> dict:
     """Parse a DB CSV (local path or HTTP URL) and return {table_name: [dict, ...]}."""
-    wanted = set(wanted_tables)
-    result = defaultdict(list)
-    headers = None
-
     try:
         if isinstance(path, str) and path.startswith('http'):
             with urllib.request.urlopen(path, timeout=15) as resp:
                 content = resp.read().decode('utf-8')
-            reader = csv.reader(io.StringIO(content))
         else:
             if not Path(path).exists():
                 return {}
-            reader = csv.reader(open(path, 'r', encoding='utf-8'))
+            content = Path(path).read_text(encoding='utf-8')
+        return _parse_db_csv(content, wanted_tables)
+    except Exception as e:
+        print(f'Warning: could not load {path}: {e}')
+        return {}
 
-        for row in reader:
+
+def _parse_db_csv(content: str, wanted_tables: list) -> dict:
+    """Parse a DB CSV string and return {table_name: [dict, ...]}."""
+    if not content:
+        return {}
+    wanted  = set(wanted_tables)
+    result  = defaultdict(list)
+    headers = None
+    try:
+        for row in csv.reader(io.StringIO(content)):
             if not row:
                 continue
             if row[0] == '__table__':
@@ -155,13 +238,11 @@ def _load_db_csv(path, wanted_tables: list) -> dict:
                 continue
             if headers is None or row[0] not in wanted:
                 continue
-            rec = {}
-            for i, h in enumerate(headers):
-                rec[h] = row[i + 1] if i + 1 < len(row) else ''
-            result[row[0]].append(rec)
+            result[row[0]].append(
+                {h: (row[i + 1] if i + 1 < len(row) else '') for i, h in enumerate(headers)}
+            )
     except Exception as e:
-        print(f'Warning: could not load {path}: {e}')
-
+        print(f'Warning: could not parse CSV content: {e}')
     return dict(result)
 
 
@@ -189,10 +270,14 @@ def _format_table(table_name: str, rows: list) -> str:
             for r in rows
         ]
         rows = sorted(rows, key=lambda r: _to_float(r.get('ad_attributed_revenue_rs')) or 0, reverse=True)
+    elif table_name == 'me_skus':
+        rows = sorted(rows, key=lambda r: _to_float(r.get('total_orders')) or 0, reverse=True)
     elif table_name == 'fk_keywords':
         rows = sorted(rows, key=lambda r: _to_float(r.get('views')) or 0, reverse=True)
     elif table_name == 'me_claims':
         rows = sorted(rows, key=lambda r: r.get('created_date', ''), reverse=True)
+    elif table_name in ('fk_orders_daily', 'fk_orders_sku'):
+        rows = sorted(rows, key=lambda r: r.get('date', ''), reverse=True)
 
     if limit:
         rows = rows[:limit]
@@ -268,3 +353,44 @@ def _load_activity_log(path: Path, tail: int = 50) -> str:
         lines = f.readlines()
     recent = lines[-tail:] if len(lines) > tail else lines
     return ''.join(recent).strip() or '(no activity yet)'
+
+
+# ─── Firestore helpers ─────────────────────────────────────────────────────────
+
+_FS_BASE = 'https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents'
+
+
+def _fs_month_keys(n: int) -> list:
+    """Return the last n calendar months as YYYY_MM strings, oldest first."""
+    now = datetime.utcnow()
+    year, month = now.year, now.month
+    keys = []
+    for _ in range(n):
+        keys.insert(0, f'{year}_{month:02d}')
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+    return keys
+
+
+def _fs_fetch_doc(project_id: str, api_key: str, collection: str, doc_id: str) -> str:
+    """Fetch a Firestore doc and return its content.stringValue field."""
+    url = f'{_FS_BASE.format(project=project_id)}/{collection}/{doc_id}?key={api_key}'
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        return data.get('fields', {}).get('content', {}).get('stringValue', '')
+    except Exception as e:
+        print(f'Warning: could not fetch Firestore {collection}/{doc_id}: {e}')
+        return ''
+
+
+def _fs_fetch_monthly(project_id: str, api_key: str, collection: str, n_months: int = 3) -> str:
+    """Fetch last n_months docs from a monthly Firestore collection and concatenate CSV."""
+    parts = []
+    for mk in _fs_month_keys(n_months):
+        content = _fs_fetch_doc(project_id, api_key, collection, mk)
+        if content:
+            parts.append(content)
+    return '\n'.join(parts)
