@@ -105,28 +105,40 @@ D:\Claude RuMee Dashbord\vantage\
 
 ## 4. Data Flow
 
+![Vantage Data Access Flow](vantage_data_flow.svg)
+
+### Data sources — by time horizon
+
+| Time horizon | Source | Access method | Auth |
+|---|---|---|---|
+| 6-month rolling (FK daily) | Firestore `rumee_fk_daily/YYYY_MM` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| 6-month rolling (ME daily) | Firestore `rumee_me_daily/YYYY_MM` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| 6-month rolling (Amazon, future) | Firestore `rumee_az_daily/YYYY_MM` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| Summary / SKU aggregates | Firestore `rumee_db/summary` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| Keywords | Firestore `rumee_keywords/YYYY_MM` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| All-time FK + ME history | `rumee-data` private repo | GitHub API + PAT | PAT in `rumee_secrets.py` (gitignored) |
+| All-time snapshot (on demand) | Firestore `rumee_db/alltime` | Firestore REST API or firebase-admin | Public API key — no PAT |
+| Insights (read + write) | Firestore `rumee_insights` | firebase-admin SDK | `FIREBASE_CREDENTIALS` env var |
+| Tasks (read + write) | Firestore `rumee_tasks` | firebase-admin SDK | `FIREBASE_CREDENTIALS` env var |
+
+### Write-back flow
+
 ```
-[GitHub repo: rumee-dashboard]
-    rumee_db_summary.csv
-    rumee_db_daily.csv
-        ↓  context_builder.py fetches via HTTP (GitHub raw URLs)
-[Vantage runner / Discord bot]
-    Builds context → calls Groq LLM
-        ↓
-[LLM response — structured JSON]
-    memory_writer.py parses and writes:
-        ↓
-[GitHub repo: rumee-dashboard / vantage/memory/]
-    experiments.json    (committed + pushed after every write)
-    learnings.json      (committed + pushed after every write)
-    activity_log.jsonl  (committed + pushed after every write)
+Vantage reads data → calls LLM → structured JSON output
+    ↓
+memory_writer.py:
+    → writes new insights to Firestore rumee_insights
+    → writes new tasks to Firestore rumee_tasks
+    → appends to vantage/memory/activity_log.jsonl (committed + pushed)
+    → updates vantage/memory/experiments.json (committed + pushed)
+    → updates vantage/memory/learnings.json (committed + pushed)
 ```
 
-**GitHub raw URLs context_builder.py fetches:**
-- `https://raw.githubusercontent.com/Rumeein/rumee-dashboard/main/rumee_db_summary.csv`
-- `https://raw.githubusercontent.com/Rumeein/rumee-dashboard/main/rumee_db_daily.csv`
+### PAT note
 
-**Status: DONE (2026-06-20)** — `context_builder.py` detects HTTP URLs and fetches via `urllib.request`. `business_profile.json` `db_path` set to GitHub raw URL base.
+Vantage runs as Python locally — a PAT stored in `rumee_secrets.py` (gitignored) is safe. This is unlike the dashboard (browser HTML, public) where a PAT would be visible to anyone. Vantage can therefore access the full all-time history in `rumee-data` directly.
+
+**Status: PENDING (2026-06-24)** — `context_builder.py` still fetches old GitHub raw URLs. Needs update to read from Firestore (6-month) and rumee-data via PAT (all-time). See active.md item #14.
 
 ---
 
