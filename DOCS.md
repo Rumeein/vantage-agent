@@ -6,7 +6,7 @@
 >
 > **Rule:** When any decision changes, this file must be updated in the same session it changes.
 
-Last updated: 2026-06-24
+Last updated: 2026-06-26
 
 ---
 
@@ -138,7 +138,7 @@ memory_writer.py:
 
 Vantage runs as Python locally — a PAT stored in `rumee_secrets.py` (gitignored) is safe. This is unlike the dashboard (browser HTML, public) where a PAT would be visible to anyone. Vantage can therefore access the full all-time history in `rumee-data` directly.
 
-**Status: PENDING (2026-06-24)** — `context_builder.py` still fetches old GitHub raw URLs. Needs update to read from Firestore (6-month) and rumee-data via PAT (all-time). See active.md item #14.
+**Status: DONE (2026-06-24, commit 77eca64)** — `context_builder.py` reads from Firestore for all rolling data. All-time history from `rumee-data` private repo via PAT is available but not yet wired into context_builder (low priority — Firestore covers 6 months which is sufficient for analysis).
 
 ---
 
@@ -201,6 +201,35 @@ Two-way Q&A bot. Holds a permanent WebSocket connection to Discord. Watches chan
 - Name: vantage#8332
 - Application ID: 1517859731539234826
 - Requires Message Content Intent ON in Discord Developer Portal
+
+### brief_builder.py
+
+Reads data from Firestore + `pipeline_run_log.json` and writes a compressed `daily_brief.txt` (~1,500 tokens vs ~8,000 for raw tables). Run after the pipeline before the nightly agent or Discord bot session.
+
+**Output:** `D:\Claude RuMee Dashbord\vantage\daily_brief.txt`
+
+**What it builds:**
+
+| Section | Source | Notes |
+|---|---|---|
+| DATA HEALTH | `pipeline_run_log.json` | Stream status, last date, row counts for all 11 streams. Gaps tagged `[GAP]`/`[PARTIAL]`/`[NOT IN BRIEF]` |
+| FK monthly | Firestore `rumee_db/summary` → `fk_monthly` | Last 3 months, return rate alarm if >50% |
+| FK ad earners | Firestore `rumee_db/summary` → `fk_skus` | Top 8 by ad revenue |
+| FK daily velocity | Firestore `rumee_orders_daily` | Last 7 days of real fulfilment orders |
+| ME monthly | Firestore `rumee_db/summary` → `me_monthly` | Last 3 months — **delivered orders only**, lags current month by ~5-7 days (settlement delay) |
+| ME daily velocity | Firestore `rumee_me_daily` | Last 7 days of `orders_placed` (all statuses including in-transit) — use this for current month activity |
+| ME SKUs + return reasons | Firestore `rumee_db/summary` | Top 8 sellers, high-return SKUs, top reasons |
+| Experiments + activity | `memory/` files | Local — no Firestore call |
+
+**Coverage spec (`_COVERAGE` dict):** Maps each pipeline stream to a lambda that asserts the brief has visible data for that stream. Checked after data loads — any stream the pipeline marks `ok` but the brief can't see is flagged `[NOT IN BRIEF]`.
+
+**Discord alert:** If any pipeline gap or coverage gap is detected, sends a red embed to Discord (same webhook as `process.py`). Clean runs are silent.
+
+**Run:**
+```
+cd D:\vantage-agent\runner
+python brief_builder.py --instance-path "D:\Claude RuMee Dashbord\vantage"
+```
 
 ### memory_writer.py
 
@@ -367,8 +396,13 @@ D:\vantage-agent\eval\
 | fk_skus column rename (data standardization) | Done (2026-06-20) |
 | system_prompt.md — Data Schema section | Done (2026-06-20) |
 | system_prompt.md — Discord response format | Done (2026-06-20) |
-| context_builder.py reads from GitHub raw URLs | Done (2026-06-20) |
+| context_builder.py reads from Firestore | Done (2026-06-24, commit 77eca64) |
 | memory_writer.py commits + pushes to GitHub | Done (2026-06-20) |
+| brief_builder.py — compressed daily brief | Done (2026-06-26, commits f2f348a / 47766fe / c9a1248 / 5ba4b37) |
+| brief_builder.py — Meesho daily velocity (orders_placed) | Done (2026-06-26) — fixes false zero-sales for current month |
+| brief_builder.py — DATA HEALTH block | Done (2026-06-26) — stream status + dates + row counts in every brief |
+| brief_builder.py — coverage spec + [NOT IN BRIEF] flag | Done (2026-06-26) — catches pipeline-ok but brief-invisible gaps |
+| brief_builder.py — Discord gap alert | Done (2026-06-26) — red embed on any pipeline or coverage gap |
 | Nightly audit on GitHub Actions | Blocked — intentionally. Only after eval loop confirms output quality. |
 | Discord bot on cloud server (24/7) | **Pending** |
 | Eval loop (automated training) | Not started |
@@ -382,12 +416,14 @@ D:\vantage-agent\eval\
 |---|---|---|
 | Communication platform | Discord (not Telegram — banned in India) | 2026-06-19 |
 | LLM provider | Groq / llama-3.3-70b-versatile (free) | 2026-06-20 |
-| Data source | GitHub raw URLs from rumee-dashboard repo — not local files | 2026-06-20 |
+| Data source | Firestore (rolling 6 months) — not GitHub raw CSV URLs | 2026-06-24 |
 | Memory storage | Committed to GitHub repo after every write — not local disk only | 2026-06-20 |
 | No local machine | Everything runs on GitHub Actions + cloud server after setup | 2026-06-20 |
 | fk_skus interpretation | Ad performance data only — no SKU-level orders or returns exist | 2026-06-20 |
 | Eval loop budget | ₹500 hard cap — hardcoded in script + Anthropic console limit as backup | 2026-06-20 |
 | Cloud hosting platform | Fly.io (free tier, always on) — to be confirmed | 2026-06-20 |
+| me_monthly current month | Always 0 until orders settle (5-7 day lag). Use `me_daily.orders_placed` for current-month activity. | 2026-06-26 |
+| Brief data integrity | Every brief runs coverage spec + DATA HEALTH block. Gaps trigger Discord alert. Adding a new pipeline stream requires updating `_COVERAGE` in brief_builder.py. | 2026-06-26 |
 
 ---
 
