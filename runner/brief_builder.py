@@ -239,9 +239,12 @@ def _fk_section(summary: dict, fk_orders: dict = None) -> list:
             units = _to_float(r.get('units_sold_via_ads'))
             impr = _to_float(r.get('ad_impressions'))
             ctr = _to_float(r.get('ctr'))
+            roas = _to_float(r.get('roas'))
             parts = []
             if rev:
                 parts.append(f'₹{_fmt_lakh(rev)} ad revenue')
+            if roas:
+                parts.append(f'ROAS {roas:.2f}x')
             if units:
                 parts.append(f'{int(units)} units via ads')
             if impr:
