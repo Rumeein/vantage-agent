@@ -82,7 +82,9 @@ def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     parts = [f"DAILY SNAPSHOT — {today}", ""]
 
-    parts += _health_section(run_log)
+    data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
+    coverage_gaps = _check_coverage(run_log, data)
+    parts += _health_section(run_log, coverage_gaps)
     parts.append("")
     parts += _fk_section(summary, fk_orders)
     parts.append("")
@@ -110,8 +112,45 @@ _HEALTH_STREAMS = [
     ('fk_claims',   'FK claims'),
 ]
 
+# Coverage spec: for each stream, a callable(data_dict) → bool.
+# data_dict keys: 'summary', 'fk_orders', 'me_daily'
+# Returns True if the brief has visible data for that stream.
+# Only checked when pipeline reports status=ok for the stream.
+_COVERAGE = {
+    'me_orders':   lambda d: bool(d['summary'].get('me_monthly') or d['me_daily'].get('me_daily')),
+    'me_payments': lambda d: bool(d['summary'].get('me_monthly')),
+    'me_returns':  lambda d: bool(d['summary'].get('me_return_reasons')),
+    'me_ads':      lambda d: bool(d['summary'].get('me_skus')),
+    'me_views':    lambda d: bool(d['summary'].get('me_views')),
+    'fk_payments': lambda d: bool(d['summary'].get('fk_monthly')),
+    'fk_views':    lambda d: bool(d['summary'].get('fk_monthly') or d['fk_orders'].get('fk_orders_daily')),
+    'fk_orders':   lambda d: bool(d['fk_orders'].get('fk_orders_daily')),
+    'fk_returns':  lambda d: bool(d['summary'].get('fk_monthly')),
+    'fk_ads':      lambda d: bool(d['summary'].get('fk_skus')),
+    'fk_claims':   lambda d: bool(d['summary'].get('fk_claims')),
+}
 
-def _health_section(run_log: dict) -> list:
+
+def _check_coverage(run_log: dict, data: dict) -> list:
+    """Return list of (stream_id, label) where pipeline=ok but brief has no data."""
+    if not run_log:
+        return []
+    statuses = run_log.get('stream_status', {})
+    label_map = dict(_HEALTH_STREAMS)
+    gaps = []
+    for sid, check in _COVERAGE.items():
+        if statuses.get(sid) != 'ok':
+            continue  # pipeline gap — already flagged in stream status
+        try:
+            has_data = check(data)
+        except Exception:
+            has_data = False
+        if not has_data:
+            gaps.append((sid, label_map.get(sid, sid)))
+    return gaps
+
+
+def _health_section(run_log: dict, coverage_gaps: list = None) -> list:
     lines = ["=== DATA HEALTH ==="]
     if not run_log:
         lines.append("  (pipeline_run_log.json not found — health unknown)")
@@ -121,24 +160,34 @@ def _health_section(run_log: dict) -> list:
     statuses   = run_log.get('stream_status', {})
     dates      = run_log.get('stream_dates', {})
     rows       = run_log.get('stream_rows', {})
+    cov_ids    = {sid for sid, _ in (coverage_gaps or [])}
 
     lines.append(f"Pipeline last ran: {last_run} UTC")
 
-    gap_streams = []
+    pipeline_gaps = []
     for sid, label in _HEALTH_STREAMS:
         status  = statuses.get(sid, 'unknown')
         last_dt = dates.get(sid) or '—'
         row_counts = rows.get(sid, {})
         row_str = ', '.join(f'{t}:{n}' for t, n in row_counts.items()) if row_counts else '—'
-        flag = ' [GAP]' if status == 'gap' else (' [PARTIAL]' if status == 'partial' else '')
-        lines.append(f"  {label}: {status}{flag}  last={last_dt}  rows={row_str}")
-        if flag:
-            gap_streams.append(label)
+        pipeline_flag = ' [GAP]' if status == 'gap' else (' [PARTIAL]' if status == 'partial' else '')
+        brief_flag    = ' [NOT IN BRIEF]' if sid in cov_ids else ''
+        lines.append(f"  {label}: {status}{pipeline_flag}{brief_flag}  last={last_dt}  rows={row_str}")
+        if pipeline_flag:
+            pipeline_gaps.append(label)
 
-    if gap_streams:
-        lines.append(f"WARNING: {len(gap_streams)} stream(s) with gaps — {', '.join(gap_streams)}")
+    warnings = []
+    if pipeline_gaps:
+        warnings.append(f"{len(pipeline_gaps)} pipeline gap(s): {', '.join(pipeline_gaps)}")
+    if coverage_gaps:
+        labels = [lbl for _, lbl in coverage_gaps]
+        warnings.append(f"{len(coverage_gaps)} brief coverage gap(s): {', '.join(labels)}")
+
+    if warnings:
+        for w in warnings:
+            lines.append(f"WARNING: {w}")
     else:
-        lines.append("All tracked streams: ok")
+        lines.append("All tracked streams: ok and covered in brief")
 
     return lines
 
