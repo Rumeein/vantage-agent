@@ -63,7 +63,13 @@ def main():
     activity_log = instance / 'memory' / 'activity_log.jsonl'
     run_log      = _load_json(instance.parent / 'pipeline_run_log.json')
 
-    brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily, run_log)
+    data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
+    coverage_gaps  = _check_coverage(run_log, data)
+    pipeline_gaps  = [lbl for sid, lbl in _HEALTH_STREAMS
+                      if run_log.get('stream_status', {}).get(sid) in ('gap', 'partial')]
+
+    brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily, run_log,
+                         _precomputed=(coverage_gaps, pipeline_gaps))
 
     output = instance / 'daily_brief.txt'
     output.write_text(brief, encoding='utf-8')
@@ -71,6 +77,9 @@ def main():
     tokens_est = len(brief) // 4
     print(f"Brief written: {output}")
     print(f"Size: {len(brief)} chars, ~{tokens_est} tokens (target <6,000)")
+
+    _notify_discord_gaps(run_log, coverage_gaps, pipeline_gaps)
+
     print()
     import sys
     sys.stdout.buffer.write(brief.encode('utf-8'))
@@ -78,12 +87,15 @@ def main():
 
 
 def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path,
-                 me_daily: dict = None, run_log: dict = None) -> str:
+                 me_daily: dict = None, run_log: dict = None, _precomputed=None) -> str:
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     parts = [f"DAILY SNAPSHOT — {today}", ""]
 
-    data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
-    coverage_gaps = _check_coverage(run_log, data)
+    if _precomputed is not None:
+        coverage_gaps, _ = _precomputed
+    else:
+        data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
+        coverage_gaps = _check_coverage(run_log, data)
     parts += _health_section(run_log, coverage_gaps)
     parts.append("")
     parts += _fk_section(summary, fk_orders)
@@ -396,6 +408,72 @@ def _activity_section(log_path: Path) -> list:
             lines.append(f"  {line[:100]}")
 
     return lines
+
+
+# ─── Discord alert ────────────────────────────────────────────────────────────
+
+def _notify_discord_gaps(run_log: dict, coverage_gaps: list, pipeline_gaps: list):
+    """Send a Discord alert if any pipeline or brief coverage gaps are detected."""
+    if not coverage_gaps and not pipeline_gaps:
+        return
+
+    import urllib.request
+    import urllib.error
+    import os
+
+    webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
+    if not webhook_url:
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'Claude RuMee Dashbord'))
+            from rumee_secrets import DISCORD_WEBHOOK_URL
+            webhook_url = DISCORD_WEBHOOK_URL
+        except Exception:
+            print("Discord webhook not configured — skipping gap alert")
+            return
+
+    last_run = (run_log.get('last_run') or 'unknown')[:16].replace('T', ' ')
+    fields = []
+
+    if pipeline_gaps:
+        fields.append({
+            'name': '⚠️ Pipeline gaps (no data)',
+            'value': '\n'.join(f'• {lbl}' for lbl in pipeline_gaps),
+            'inline': False,
+        })
+
+    if coverage_gaps:
+        fields.append({
+            'name': '🔍 Brief coverage gaps (data exists but not shown to Vantage)',
+            'value': '\n'.join(f'• {lbl}' for _, lbl in coverage_gaps),
+            'inline': False,
+        })
+
+    fields.append({
+        'name': 'Action needed',
+        'value': 'Check pipeline_run_log.json and brief_builder.py coverage spec.',
+        'inline': False,
+    })
+
+    embed = {
+        'title': '🚨 Vantage Brief — Data Gaps Detected',
+        'description': f'Brief generated {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")} UTC  |  Pipeline last ran: {last_run} UTC',
+        'color': 0xe74c3c,
+        'fields': fields,
+    }
+
+    payload = json.dumps({'embeds': [embed]}).encode('utf-8')
+    req = urllib.request.Request(
+        webhook_url,
+        data=payload,
+        headers={'Content-Type': 'application/json', 'User-Agent': 'RumeePipeline/1.0'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"Discord gap alert sent (HTTP {resp.status})")
+    except urllib.error.URLError as e:
+        print(f"Discord gap alert failed: {e}")
 
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
