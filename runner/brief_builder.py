@@ -17,7 +17,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_INSTANCE = Path("D:/Claude RuMee Dashbord/vantage")
+DEFAULT_INSTANCE = Path("D:/vantage-rumee")
 FK_RETURN_ALARM = 50.0   # % — flag FK return rate above this
 ME_RETURN_WATCH = 15.0   # % per SKU — flag Meesho SKU above this
 FK_SKU_RENAME = {
@@ -45,6 +45,7 @@ def main():
         summary   = _parse_csv_string(_fs_fetch_doc(project_id, api_key, 'rumee_db', 'summary'))
         ord_csv   = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_daily', n_months=3)
         fk_orders = _parse_csv_string(ord_csv)
+        me_daily  = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_me_daily', n_months=1))
     else:
         db_path = ds.get('db_path', '').rstrip('/')
 
@@ -56,11 +57,12 @@ def main():
         summary   = _load_db_csv(_url('rumee_db_summary.csv'))
         # fk_orders_daily lives in rumee_db_daily.csv, not a separate file
         fk_orders = _load_db_csv(_url('rumee_db_daily.csv'))
+        me_daily  = _load_db_csv(_url('rumee_db_daily.csv'))
 
     experiments  = _load_json(instance / 'memory' / 'experiments.json')
     activity_log = instance / 'memory' / 'activity_log.jsonl'
 
-    brief = _build_brief(summary, fk_orders, experiments, activity_log)
+    brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily)
 
     output = instance / 'daily_brief.txt'
     output.write_text(brief, encoding='utf-8')
@@ -74,13 +76,14 @@ def main():
     sys.stdout.buffer.write(b'\n')
 
 
-def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path) -> str:
+def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path,
+                 me_daily: dict = None) -> str:
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     parts = [f"DAILY SNAPSHOT — {today}", ""]
 
     parts += _fk_section(summary, fk_orders)
     parts.append("")
-    parts += _me_section(summary)
+    parts += _me_section(summary, me_daily)
     parts.append("")
     parts += _experiments_section(experiments)
     parts.append("")
@@ -117,16 +120,22 @@ def _fk_section(summary: dict, fk_orders: dict = None) -> list:
         ]
         skus = sorted(skus, key=lambda r: _to_float(r.get('ad_attributed_revenue_rs')) or 0, reverse=True)
 
-        lines.append("Top 5 ad earners:")
-        for r in skus[:5]:
+        lines.append("Top 8 ad earners (ad-attributed only — NOT total orders/revenue):")
+        for r in skus[:8]:
             name = r.get('sku_name') or r.get('sku_id', '?')
             rev = _to_float(r.get('ad_attributed_revenue_rs'))
             units = _to_float(r.get('units_sold_via_ads'))
+            impr = _to_float(r.get('ad_impressions'))
+            ctr = _to_float(r.get('ctr'))
             parts = []
             if rev:
                 parts.append(f'₹{_fmt_lakh(rev)} ad revenue')
             if units:
                 parts.append(f'{int(units)} units via ads')
+            if impr:
+                parts.append(f'{int(impr)} impressions')
+            if ctr:
+                parts.append(f'{ctr:.2f}% CTR')
             lines.append(f"  {name}: {', '.join(parts) or '(no data)'}")
 
         ctr_skus = [r for r in skus if _to_float(r.get('ctr'))]
@@ -151,12 +160,12 @@ def _fk_section(summary: dict, fk_orders: dict = None) -> list:
     return lines
 
 
-def _me_section(summary: dict) -> list:
+def _me_section(summary: dict, me_daily: dict = None) -> list:
     lines = ["=== MEESHO ==="]
 
     me_months = summary.get('me_monthly', [])
     if me_months:
-        lines.append("Monthly performance (recent 3 months):")
+        lines.append("Monthly performance (recent 3 months, delivered orders only — current month updates with settlement lag):")
         months = sorted(me_months, key=lambda r: r.get('month', ''), reverse=True)[:3]
         for r in reversed(months):
             month = r.get('month', '?')
@@ -170,12 +179,27 @@ def _me_section(summary: dict) -> list:
     else:
         lines.append("  (no monthly data)")
 
+    # Daily placed orders (last 7 days) — includes in-transit, not yet settled
+    if me_daily:
+        raw_daily = me_daily.get('me_daily', [])
+        by_date = defaultdict(int)
+        for r in raw_daily:
+            placed = _to_float(r.get('orders_placed', 0))
+            if placed:
+                by_date[r['date']] += int(placed)
+        if by_date:
+            recent = sorted(by_date.keys(), reverse=True)[:7]
+            avg = sum(by_date[d] for d in recent) / len(recent)
+            lines.append(f"Daily orders placed (last {len(recent)}d, avg {avg:.0f}/day — includes in-transit):")
+            for d in reversed(recent):
+                lines.append(f"  {d}: {by_date[d]} orders placed")
+
     me_skus = summary.get('me_skus', [])
     if me_skus:
         skus = sorted(me_skus, key=lambda r: _to_float(r.get('total_orders')) or 0, reverse=True)
 
-        lines.append("Top 5 sellers (by orders):")
-        for r in skus[:5]:
+        lines.append("Top 8 sellers (by orders):")
+        for r in skus[:8]:
             name = r.get('sku_name') or r.get('sku_id', '?')
             orders = _fmt_int(r.get('total_orders', '0'))
             rate = _to_float(r.get('return_rate'))
