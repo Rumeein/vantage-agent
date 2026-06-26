@@ -61,8 +61,9 @@ def main():
 
     experiments  = _load_json(instance / 'memory' / 'experiments.json')
     activity_log = instance / 'memory' / 'activity_log.jsonl'
+    run_log      = _load_json(instance.parent / 'pipeline_run_log.json')
 
-    brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily)
+    brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily, run_log)
 
     output = instance / 'daily_brief.txt'
     output.write_text(brief, encoding='utf-8')
@@ -77,10 +78,12 @@ def main():
 
 
 def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path,
-                 me_daily: dict = None) -> str:
+                 me_daily: dict = None, run_log: dict = None) -> str:
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     parts = [f"DAILY SNAPSHOT — {today}", ""]
 
+    parts += _health_section(run_log)
+    parts.append("")
     parts += _fk_section(summary, fk_orders)
     parts.append("")
     parts += _me_section(summary, me_daily)
@@ -90,6 +93,54 @@ def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path
     parts += _activity_section(activity_log)
 
     return "\n".join(parts)
+
+
+# Stream display order and friendly labels for health block
+_HEALTH_STREAMS = [
+    ('me_orders',   'Meesho orders'),
+    ('me_payments', 'Meesho payments'),
+    ('me_returns',  'Meesho returns'),
+    ('me_ads',      'Meesho ads'),
+    ('me_views',    'Meesho views'),
+    ('fk_payments', 'FK payments'),
+    ('fk_views',    'FK views/daily'),
+    ('fk_orders',   'FK orders'),
+    ('fk_returns',  'FK returns'),
+    ('fk_ads',      'FK ads'),
+    ('fk_claims',   'FK claims'),
+]
+
+
+def _health_section(run_log: dict) -> list:
+    lines = ["=== DATA HEALTH ==="]
+    if not run_log:
+        lines.append("  (pipeline_run_log.json not found — health unknown)")
+        return lines
+
+    last_run   = (run_log.get('last_run') or '')[:16].replace('T', ' ')
+    statuses   = run_log.get('stream_status', {})
+    dates      = run_log.get('stream_dates', {})
+    rows       = run_log.get('stream_rows', {})
+
+    lines.append(f"Pipeline last ran: {last_run} UTC")
+
+    gap_streams = []
+    for sid, label in _HEALTH_STREAMS:
+        status  = statuses.get(sid, 'unknown')
+        last_dt = dates.get(sid) or '—'
+        row_counts = rows.get(sid, {})
+        row_str = ', '.join(f'{t}:{n}' for t, n in row_counts.items()) if row_counts else '—'
+        flag = ' [GAP]' if status == 'gap' else (' [PARTIAL]' if status == 'partial' else '')
+        lines.append(f"  {label}: {status}{flag}  last={last_dt}  rows={row_str}")
+        if flag:
+            gap_streams.append(label)
+
+    if gap_streams:
+        lines.append(f"WARNING: {len(gap_streams)} stream(s) with gaps — {', '.join(gap_streams)}")
+    else:
+        lines.append("All tracked streams: ok")
+
+    return lines
 
 
 def _fk_section(summary: dict, fk_orders: dict = None) -> list:
