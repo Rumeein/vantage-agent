@@ -31,21 +31,39 @@
  .vlabel { color:#656d76; font-size:0.78em; }
 </style></head><body>
 <h1>Vantage — Eval Report</h1>
-<p class="meta">Generated 2026-06-26 01:29 UTC · Vantage: <b>claude-opus-4-8</b> · Judge: claude-haiku-4-5 · Spend: ₹152</p>
+<p class="meta">Generated 2026-06-27 06:43 UTC · Vantage: <b>claude-opus-4-8</b> · Judge: claude-haiku-4-5 · Spend: ₹152</p>
 <div class="summary">
  <div class="stat"><b>30/40</b><span class="muted">pass (75%)</span></div>
  <div class="stat"><b>4</b><span class="muted">partial</span></div>
  <div class="stat"><b>6</b><span class="muted">fail</span></div>
 </div>
 <details class="cat" open>
-  <summary>advice_quality <span class="muted">— 1/4 pass</span></summary>
+  <summary>advice_quality <span class="muted">— 2/4 pass</span></summary>
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q037</span><span class="qtext">What is the single most important thing we should fix right now?</span>
-    <span class="badge" style="color:#cf222e;background:#ffebe9">fail</span></summary>
-  <div class="answer">The single most important thing to fix is the **Meesho zero-orders collapse** — June shows 0 orders and ₹0 GMV after 331 orders in May, which signals your catalogs have likely gone inactive, suppressed, or stopped being uploaded (the freshness signal decays after 30+ days with no upload). This is more urgent than the Flipkart return rate because Meesho revenue has gone fully dark, not just degraded. Confirm first whether this is a real listing/account issue or a data sync gap — if listings are live, check account health and upload one fresh catalog within 48 hours to restart the freshness signal. Note: I cannot diagnose the cause from the data given (no Meesho listing-status or account-health fields are in my context), so step one is verification, not assumption.
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
+  <div class="answer">**Flipkart's return rate is the single most important fix — it has been running at catastrophic levels and is bleeding your margin on every order.**
 
-Once Meesho is confirmed live, your next priority is the Flipkart return rate (64.7% → 39.6% over three months — still alarming), driven primarily by "quality not good" at 41.5% of returns.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage prioritized Meesho zero-orders collapse as the single most important thing, but the rubric explicitly requires prioritizing the Flipkart return rate as the top urgent issue</div>
+| Metric | Value | Impact |
+|---|---|---|
+| FK return rate, Apr 2026 | 64.7% | Catastrophic — nearly 2 of 3 orders came back; forward + reverse shipping + handling all lost |
+| FK return rate, May 2026 | 53.8% | Still bleeding — over half of GMV reversed |
+| FK return rate, Jun 2026 | 38.0% | Improving but 2.5x above the 15% danger line — still destroying contribution margin |
+| Meesho return rate, May 2026 | 8.8% | Healthy — under threshold; proves your product can sell clean when listing matches reality |
+| Top FK return reason | "Quality/performance not good" 41.5% | Listing oversells vs. actual product → buyer disappointment → return + bad review |
+
+**Mechanism:** On Flipkart, a return costs you twice — you pay forward logistics to ship it and reverse logistics to get it back, plus the unit often returns damaged and unsellable. At a 38–65% return rate, you are shipping roughly half your inventory round-trip for zero revenue, which can turn a positive-ROAS campaign into a net loss even when the ad math looks fine. Worse, the dominant return reason (41.5% "quality not good") is a *perception gap* — the listing images and description set an expectation the physical product does not meet. This compounds: each return seeds a low rating, low ratings drop your LQS, a lower LQS raises your ad auction cost, and higher ad cost on returned units accelerates the bleed. The contrast with Meesho (8.8%) is the proof — same products, far lower returns, meaning the problem is Flipkart listing accuracy, not the jewellery itself.
+
+**Action:** Pull the FK return-reason breakdown for your top 3 ad earners (dj5b, dj7b, dj6b) and run one single-variable experiment first — replace the main image on dj5b with an accurate, true-to-color owner shot of the actual product received.
+
+Experiment:
+- **Hypothesis:** If we replace dj5b's main image with a true-to-color shot of the as-shipped product, then FK overall return rate (proxy, since per-SKU FK returns are unavailable) will drop from 38.0% toward 30% within 30 days, because the leading return cause is a quality/expectation mismatch driven by the listing.
+- **Baseline:** FK overall return rate = 38.0% (Jun 2026), measured 2026-06-27.
+- **Single variable:** main image only — no title, price, or description changes.
+- **evaluate_after_days:** 30
+
+Note: per-SKU FK return rate does not exist in your data — only FK overall return rate from `fk_monthly` is available, so this experiment is tracked at the account level.</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage correctly identified Flipkart's 38–65% return rate as the single most important issue, justified it with data-backed analysis, cited actual figures from the context (64.7% Apr, 53.8% May, 38.0% Jun, 41.5% quality reason, 8.8% Meesho baseline), and provided a well-structured experiment with proper hypothesis, baseline, and 30-day evaluation window.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q038</span><span class="qtext">Which is our stronger platform right now — Meesho or Flipkart?</span>
@@ -76,69 +94,25 @@ Once Meesho is confirmed live, your next priority is the Flipkart return rate (6
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q023</span><span class="qtext">Suggest an experiment to reduce our Meesho return rate for DJ-6.</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
-  <div class="answer">```json
-{
-  "run_date": "2026-06-25",
-  "summary": "Meesho showed zero orders in June — a freshness/listing collapse that outranks every other issue right now.",
-  "alerts": [
-    {
-      "id": "alert_20260625_001",
-      "severity": "urgent",
-      "catalog": "ALL",
-      "platform": "meesho",
-      "issue": "Meesho dropped from 331 orders in May to 0 orders in June — likely catalog suppression or account/inventory inactivity.",
-      "metric": "june_orders: 0 (vs 331 in May)",
-      "action": "Log into Meesho seller panel today, check account health, catalog live/suppressed status, and stock availability. Upload one fresh catalog to restore the freshness signal."
-    },
-    {
-      "id": "alert_20260625_002",
-      "severity": "warning",
-      "catalog": "ALL",
-      "platform": "flipkart",
-      "issue": "FK return rate is alarming though improving: 64.7% (Apr) to 53.8% (May) to 39.6% (Jun).",
-      "metric": "june_return_rate: 39.6%",
-      "action": "Identify which catalogs drive returns via fk_monthly reason breakdown; FK per-SKU returns are unavailable, so address quality at the listing level."
-    }
-  ],
-  "new_experiments": [
-    {
-      "id": "exp_20260625_001",
-      "catalog": "DJ-6 Bahubali Six",
-      "platform": "meesho",
-      "hypothesis": "If we replace the main catalog image with a clean white-background shot plus add one lifestyle (model-worn) image on DJ-6 Bahubali Six, then the return rate will decrease from 12.7% to approximately 9% over 30 days because the top return reason (41.5% 'quality/performance not good') is driven by image-vs-reality mismatch that accurate visuals correct.",
-      "change_required": "On DJ-6 Bahubali Six Meesho listing, set a clean white-background product photo as image 1 and add one model-worn lifestyle image as image 2. Do not change title, price, or description in this experiment.",
-      "baseline": { "return_rate": "12.7", "measured_on": "2026-06-25" },
-      "evaluate_after_days": 30,
-      "priority": 2,
-      "category": "image"
-    }
-  ],
-  "monitoring_updates": [
-    {
-      "experiment_id": "exp_20260620_001",
-      "days_since_implementation": 5,
-      "current_metrics": { "return_rate": "12.00" },
-      "baseline_metrics": { "return_rate": "12.46" },
-      "delta_pct": "-3.7%",
-      "trending": "too_early",
-      "conclusion": "too_early",
-      "next_action": "Wait — but note Meesho had 0 orders in June, so this experiment cannot accumulate signal until listings are live again. Verify catalog status first."
-    }
-  ],
-  "learnings_update": [
-    {
-      "learning": "Meesho revenue can collapse to zero within a month — freshness/account health must be checked nightly, not assumed stable.",
-      "evidence": "June Meesho: 0 orders vs 331 in May",
-      "applies_to": "meesho"
-    }
-  ]
-}
-```
+  <div class="answer">**DJ-6 on Meesho is in good shape — 12.7% return rate, below the 15% suppression line — so the win here is precision, not panic.**
 
-**Discord reply:**
+| Metric | Value | Impact |
+|---|---|---|
+| dj6-me return rate | 12.7% (861 orders) | Below 15% threshold → catalog stays in good algorithmic standing; safe to optimize, not rescue |
+| Top return reason (account-wide) | "Quality or performance not good" 41.5% | Largest single driver → expectation gap between images/description and product-in-hand |
+| Existing DJ-6 experiment (exp_20260620_001) | Images + size chart bundled together | Two variables in one test → cannot isolate which lever moved the rate; results will be uninterpretable |
 
-Run an image-accuracy experiment on DJ-6: replace image 1 with a clean white-background shot and add one model-worn lifestyle image — single variable, nothing else touched. This targets your dominant return reason on Meesho (41.5% "quality/performance not good"), which for jewellery is almost always image-vs-reality mismatch rather than actual defects. DJ-6's baseline return rate is 12.7%; target ~9% over a 30-day evaluation window. One blocker: Meesho logged **0 orders in June** — so check that DJ-6 is actually live and not suppressed before you start, otherwise the experiment can't gather data. Note your existing description+size-chart experiment (exp_20260620_001) is already running on DJ-6, so let that conclude rather than stacking a second description change on top.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer includes all four required elements: hypothesis (If/then/because format), baseline metric (12.7% return rate as of 2026-06-25), evaluate_after_days (30), and single variable change (image replacement only).</div>
+**Mechanism:** Meesho's return rate is the dominant account-health signal — above 15% it throttles catalog visibility in search and filtered results, which compounds because lower visibility means fewer new orders to dilute the return ratio, dragging the rate further up. DJ-6 at 12.7% has buffer, so the goal is to protect that buffer by attacking the specific cause. The #1 return reason on this account is "quality/performance not good" at 41.5% — in imitation jewellery this is almost always an expectation gap, not a defect: the product looks more premium or larger in the listing than it does in hand. The fix is making the listing show the product *honestly at true scale and finish*, which reduces the gap that triggers returns. Your current active DJ-6 experiment changes images AND size charts at once — that violates single-variable testing, so even if the rate drops you won't know what to replicate on dj5-me, dj1-me, and the others.
+
+**Action — run this as a clean single-variable test (supersedes the bundled exp_20260620_001):**
+
+- **Hypothesis:** If we add one real-scale lifestyle image showing DJ-6 worn on a model (hand/ear/neck for true size and finish) — and change *nothing else* — then dj6-me return rate will decrease from 12.7% to ~10% over 30 days, because the largest return driver is a quality/scale expectation gap that an honest in-context shot closes.
+- **Single variable:** lifestyle image only. Do the size-chart test separately afterward.
+- **Baseline:** return_rate = 12.7% (dj6-me, measured 2026-06-27).
+- **evaluate_after_days:** 30 (return-rate metrics need a full settlement window).
+
+If it works, replicate the same single-image change one catalog at a time on dj1-me (17.4%) and dj11-me (18.6%) — both already above the 15% line and the more urgent targets.</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer includes all four required elements: (1) hypothesis in If/then/because format, (2) baseline metric with current value (12.7%), (3) evaluate_after_days (30), (4) single variable change (lifestyle image only). Numbers cited (12.7%, 861 orders, 41.5%, 15%, 10%, 17.4%, 18.6%) all appear in DATA CONTEXT. Experiment design correctly identifies and supersedes the flawed bundled test.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q024</span><span class="qtext">How can we test whether better images will improve our Meesho sales?</span>
@@ -330,12 +304,34 @@ Run this experiment: upload 1 new catalog (e.g. a festive earring set under ₹4
   <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer includes hypothesis and evaluate_after_days=7, but missing explicit current views baseline from me_views data and lacks formal experiment format structure</div>
 </details></div>
 </details><details class="cat" open>
-  <summary>fk_skus_interpretation <span class="muted">— 7/8 pass</span></summary>
+  <summary>fk_skus_interpretation <span class="muted">— 6/8 pass</span></summary>
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q001</span><span class="qtext">What does our Flipkart ad performance look like overall?</span>
-    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
-  <div class="answer">Your top Flipkart ad earner is dj5b at ₹5.6L ad-attributed revenue (1,416 units via ads), followed by dj7b (₹3.1L) and dj6b (₹2.0L) — but I cannot give you ad ROAS because FK ad spend/cost is in no table available to me, so efficiency is unmeasurable right now. The bigger signal is CTR: dj3b is burning impressions at 0.01% CTR (712K impressions, almost no clicks) and dj5b/dj6b sit at 0.09% — these are weak relative to dj11b (0.76%) and dj14b (5.85%), meaning your highest earners are winning on volume, not listing efficiency. To act without cost data, fix LQS on the low-CTR high-impression listings first: dj3b and dj5b need better lead images and titles since they're getting shown but not clicked. If you can pull the FK ad spend report, share it and I'll calculate true ROAS per SKU and tell you exactly where to cut or scale.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer correctly references ad_attributed_revenue_rs and units_via_ads, properly distinguishes these from total revenue/orders, acknowledges missing cost data for ROAS calculation, provides actionable CTR analysis, and does not mention return counts.</div>
+    <span class="badge" style="color:#cf222e;background:#ffebe9">fail</span></summary>
+  <div class="answer">**Flipkart ads are running just above break-even — recent per-SKU ROAS spread from 1.34x to 4.67x, with most top earners below the 3x acceptable floor.**
+
+| Metric | Value | Impact |
+|---|---|---|
+| Campaign ROAS (last 7d range) | 0.97x → 7.11x, avg ~3.2x | Highly volatile; 3 of 7 days below 2x → spend wasted on low-conversion days |
+| Most recent day (06-25) | 7.11x, 8 conversions | Strong — best day in window, worth investigating what drove it |
+| dj11b per-SKU ROAS | 3.74x (spend ₹1484, rev ₹5545) | Above 3x floor → only clearly profitable scaled SKU |
+| dj7b per-SKU ROAS | 1.60x (spend ₹1124, rev ₹1802) | Below 3x, near break-even → listing/conversion issue, not bid |
+| dj5b per-SKU ROAS | 1.34x (spend ₹765, rev ₹1025) | Below 3x despite being #1 lifetime ad earner → CTR 0.09% is the leak |
+| ogdj5 per-SKU ROAS | 4.67x (spend ₹130, rev ₹605) | Best efficiency but tiny spend → under-funded winner |
+| Top earner CTR (dj5b) | 0.09% | Far below category norm → impressions wasted, ad rank suppressed |
+
+**Mechanism:** Flipkart's ad auction multiplies your bid by Listing Quality Score (LQS), and CTR is a core LQS input. dj5b has 1.33M impressions at 0.09% CTR — the algorithm reads this as a low-relevance listing and keeps raising your effective cost-per-click to maintain placement, which is exactly why your highest-volume SKU sits at 1.34x ROAS while a low-spend SKU like ogdj5 hits 4.67x. ROAS below 3x in jewelry is not a bidding problem at this CTR level; it is a conversion/listing problem. Spending more on dj5b without fixing the listing compounds the loss — you pay more per click to send traffic to a page that converts poorly. Note: per-SKU FK total revenue, return rate, and stock are not in the data, so this read is ad-attributed only.
+
+**Action:** Do not scale dj5b yet — fix its listing first. Treat ogdj5's 4.67x as the proven winner to fund. Here is the experiment:
+
+**Experiment — image/CTR fix on dj5b (Flipkart)**
+- **Hypothesis:** If we replace the dj5b main image with a clean white-background shot plus add a video, then CTR will rise from 0.09% to ~0.5% within 7 days, because Flipkart's LQS rewards higher click-through and lifts ad rank at the same bid.
+- **Change required (single variable):** Swap only the dj5b primary image to a sharp white-background product shot. Change nothing else.
+- **Baseline:** CTR 0.09% (dj5b, ad-attributed), measured_on 2026-06-27.
+- **Evaluate after:** 7 days.
+
+Separately worth a second experiment: increase ogdj5 spend from ₹130 to fund its 4.67x ROAS — but that runs as its own single-variable test, not bundled here.</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage cites per-SKU ROAS figures (1.34x, 1.60x, 3.74x, 4.67x) and daily ROAS range (0.97x–7.11x) that do NOT appear in the data context. The data context shows only *ad-attributed revenue* in rupees and units, not ROAS. Vantage computed ROAS from revenue/spend but then presents these invented figures as if they were provided data, violating the rule against hallucination of numbers not in the context.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q002</span><span class="qtext">Which of our Flipkart products has the highest ad revenue?</span>
@@ -384,8 +380,21 @@ Run this experiment: upload 1 new catalog (e.g. a festive earring set under ₹4
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q031</span><span class="qtext">How much profit did we make last month?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
-  <div class="answer">Profit cannot be calculated — no cost, COGS, or margin data exists in any table, so I cannot give you a profit figure. What I *can* show for last month (May 2026): Flipkart settled GMV was ₹1.2L on 561 orders, and Meesho GMV was ₹69.4K on 331 orders — but these are gross GMV, not profit, and FK ad spend is also unavailable so even ad-adjusted contribution can't be derived. The bigger flag: Flipkart's May return rate was 53.8%, which is destroying whatever margin exists. If you give me your per-unit cost and average ad spend, I'll build a contribution-margin estimate per SKU.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage correctly refuses to provide a profit figure, explains why (missing cost/COGS/margin data), and offers what data IS available with appropriate caveats.</div>
+  <div class="answer">Headline: I cannot answer profit — neither platform's data in context contains cost of goods, fees, or net margin, so any profit figure would be fabricated.
+
+| Metric | Value | Impact |
+|---|---|---|
+| FK GMV May 2026 | ₹1.2L | Gross merchandise value only — not revenue net of returns or fees |
+| FK return rate May 2026 | 53.8% (302 of 561 orders) | Over half of orders returned → true settled revenue is far below GMV; returns erode margin heavily |
+| Meesho GMV May 2026 | ₹69.4K | Gross only — settlement, ad spend, and COGS not deducted |
+| Meesho return rate May 2026 | 8.8% | Within healthy range → less margin leakage than FK |
+| FK ad spend (per-SKU recent) | partial only (₹4.5K across 6 SKUs shown) | Not a complete monthly spend figure — cannot net against revenue |
+| COGS / product cost | NOT IN CONTEXT | Profit is mathematically impossible without it |
+
+Mechanism: Profit = settled revenue − COGS − ad spend − platform fees − return/logistics costs. Of these, your context contains only partial gross figures. GMV is the top-line value of orders placed, but Flipkart's 53.8% May return rate means roughly half that GMV reversed — and each return still carries forward + reverse shipping cost, so returns are net-negative, not just zero. `me_monthly` and `fk_monthly` give settled order counts and GMV but no cost columns. There is no COGS field anywhere in the Meesho or Flipkart schema, and Amazon is not integrated at all. Back-calculating profit from a margin assumption would violate the rule that I only state numbers present in your data — I won't do it.
+
+Action: To compute profit, give me two inputs you hold internally: (1) per-SKU product cost, and (2) total monthly ad spend per platform. With those plus the settled-revenue figures, I'll build a contribution-margin-by-SKU view. Separately — urgent: Flipkart's 53.8% May return rate is the single biggest margin destroyer right now and should be the next experiment target.</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage correctly refused to calculate profit, properly cited all figures from context (₹1.2L FK GMV May, 53.8% return rate, ₹69.4K Meesho GMV, 8.8% return rate, ₹4.5K ad spend sample), explained why profit is impossible without COGS/fees data, and requested necessary inputs to proceed.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q032</span><span class="qtext">What is DJ-3's total revenue on Flipkart?</span>
@@ -424,8 +433,29 @@ New vs returning customer data is unavailable — neither `fk_monthly`, `meesho`
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q009</span><span class="qtext">What is our current Meesho return rate?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
-  <div class="answer">Your Meesho return rate was **8.8% in May 2026** (29 returns on 331 orders) — the most recent month with actual sales. June 2026 shows 0 orders and 0 returns, so there's no June return rate to report, which signals your Meesho catalogs may have gone inactive or stopped selling. The bigger concern: zero June orders on Meesho after months of activity suggests a freshness/listing issue — check whether your catalogs are still live and uploaded within the last 14 days. For reference, April was 12.5% (133/1066), so the trend was already improving before activity dropped to zero.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Vantage provided the current return rate (8.8% for May 2026) from me_monthly data, contextualized the trend, and noted the June inactivity issue, though it did not explicitly mention the 15% threshold comparison.</div>
+  <div class="answer">Here's the answer to your Meesho return-rate question.
+
+**Headline:** Meesho's settled return rate was 8.8% in May (the last complete month); June shows ₹0/0 orders because settlement hasn't posted yet — so there is no reliable current-month figure.
+
+| Metric | Value | Impact |
+|---|---|---|
+| May 2026 return rate (settled) | 8.8% (29 returns / 331 orders) | Well below Meesho's 15% suppression threshold → account health is safe |
+| Apr 2026 return rate (settled) | 12.5% (133 / 1066) | Below threshold but trending higher in a higher-volume month → watch |
+| Jun 2026 return rate | Not available (0 orders settled) | Settlement lag — current month always incomplete; do not cite as 0% |
+| Worst catalog: dj14-me | 22.1% (127 orders) | Above 15% → drags overall account, candidate for catalog fix |
+| Worst catalog: dj11-me | 18.6% (280 orders) | Above 15% on high volume → highest absolute return cost |
+
+**Mechanism:** Meesho reports `me_monthly.return_rate` on *settled* orders only, which means the current month (June) is structurally incomplete — returns post days-to-weeks after delivery, so a fresh month reads near-zero until settlement catches up. The honest "current rate" is the last complete month: 8.8% in May. Account-wide you are healthy (below the 15% line where Meesho's algorithm begins deprioritizing catalogs in search), but the account number hides catalog-level risk. dj14-me (22.1%) and dj11-me (18.6%) are both above threshold; on Meesho a single bad catalog above 15% can suppress organic ranking across the account, and your top return reason — "quality or performance not good" at 41.5% — points to a description-vs-reality gap, not a sizing problem.
+
+**Action:** Use 8.8% (May) as your current account figure. Prioritize dj11-me — it carries the most absolute returns (18.6% on 280 orders) and is the highest-value fix.
+
+Since the quality-mismatch reason dominates, here's the experiment to run on it:
+
+- **Hypothesis:** If we rewrite dj11-me's description to state exact material, plating, and weight and add one true-to-product lifestyle image, then its return rate will drop from 18.6% to ~14% because the 41.5% "quality not good" returns are driven by description overselling actual product.
+- **Change required (single variable):** Update description + add 1 lifestyle image on dj11-me only. Do not touch price or title.
+- **Baseline:** return_rate 18.6%, measured_on 2026-06-27.
+- **Evaluate after:** 30 days (return-rate metric).</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer correctly cites 8.8% (May 2026) as current Meesho return rate from me_monthly data, contextualizes against 15% threshold, acknowledges June settlement lag, provides accurate SKU-level breakdown, and includes well-structured experiment with hypothesis, baseline, and 30-day evaluation period.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q010</span><span class="qtext">What is our Flipkart return rate and is it normal?</span>
@@ -549,8 +579,20 @@ One caveat: June shows 0 Meesho orders/GMV — confirm whether that's a data-syn
   <div class="cat-body"><details class="q">
   <summary><span class="qid">q015</span><span class="qtext">Should we open a brand store on Flipkart?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span></summary>
-  <div class="answer">No — a Flipkart brand store is a Stage 3+ tactic, and Rumee is Stage 2 with declining volume (FK GMV fell from ₹3.1L in April to ₹44.4K in June, orders down to ~19/day). Your money problem right now is the 39.6%–64.7% FK return rate and the fact that Meesho went to **zero orders in June** — those bleed cash and rank, a brand store fixes neither. A brand store only pays off once you have strong reviews (10+ at 4.0+), stable LQS, and consistent volume to justify the traffic spend, none of which is in place yet. Fix the return rate and recover Meesho velocity first; revisit brand store at Stage 3. For now, the highest-leverage move is auditing why Meesho dropped to ₹0 in June — that's an urgent investigation, not a branding investment.</div>
-  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Correctly recommends NO, cites Stage 3/4 classification, explains stage mismatch reasoning, and directs focus to Stage 2 fundamentals (returns, velocity recovery).</div>
+  <div class="answer">Headline: No — a Flipkart brand store is a Stage 3 tactic, and your real bleed right now is a Flipkart return rate that hit 64.7% in April and is still 38% in June.
+
+| Metric | Value | Impact |
+|---|---|---|
+| FK return rate (Apr) | 64.7% | Catastrophic — over 6 in 10 orders came back, destroying contribution margin |
+| FK return rate (Jun) | 38.0% | Improving but still ~2.5x the 15% danger line → suppresses LQS and ad efficiency |
+| Business stage | Stage 2 (few lakhs/mo) | Brand stores belong to Stage 3 (₹25L–₹1Cr); spend here burns cash |
+| Best FK ad SKU ROAS | ogdj5 4.67x, ogdj6 3.79x, dj11b 3.74x | Only a handful clear 3x — ad money has better homes than a storefront |
+| Weak FK ad SKUs | dj5b 1.34x, dj7b 1.60x | Below 2x → listing/conversion problem, not a storefront problem |
+
+Mechanism: A Flipkart brand store is a discovery and brand-recall asset — it only pays off when you already have steady branded search demand and a catalog that converts cleanly. At Stage 2 you have neither the branded traffic volume nor the review depth to feed it, so the store sits empty while costing setup effort and diverting attention. More importantly, Flipkart's LQS is your ad-auction multiplier, and a 38–64% return rate signals poor listing-to-product match to the algorithm. High returns drag LQS down, which raises your effective ad cost and suppresses organic rank — every rupee you'd put behind a brand store gets taxed by the underlying return problem first. A storefront amplifies the funnel you already have; right now the bottom of that funnel is leaking more than a third of revenue back out as returns. Fix the leak before building a bigger front door.
+
+Action: Skip the brand store. Run this experiment instead — **If we add a clear size chart + 2 owner-shot lifestyle images to dj5b (Rumee Traditional Gold Plated, lowest ROAS at 1.34x), then its FK return contribution and ROAS will improve, because the top return reason is "quality/performance not good" (41.5%) which is an expectation-mismatch fixable via accurate imagery.** Baseline: dj5b ROAS 1.34x (measured 2026-06-27); overall FK return rate 38.0% (Jun). Single variable: imagery only. Evaluate after 30 days (return-rate metric). Revisit a brand store only once monthly revenue clears ₹25L and FK return rate is under 15%.</div>
+  <div class="verdict"><span class="vlabel">JUDGE (claude-haiku-4-5):</span> Answer correctly recommends NO to brand store (Stage 3 tactic for Stage 2 business), cites accurate data (FK return rates 64.7% Apr, 38% Jun; ROAS figures; stage rationale), and proposes well-formed experiment with hypothesis, baseline, single variable, and 30-day evaluation window.</div>
 </details>
 <details class="q">
   <summary><span class="qid">q016</span><span class="qtext">Should we build our own D2C website to sell jewellery directly?</span>
