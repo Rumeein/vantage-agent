@@ -3,7 +3,7 @@ Vantage eval loop — tests Vantage's conversational answers and judges them.
 
 Smartest-setup batch (current plan):
   Vantage answers  = Claude Opus 4.8   (the quality bar we are chasing)
-  Judge            = Claude Haiku 4.5  (cheap, only scores pass/fail)
+  Judge            = Human (Claude in session) — reads printed output, gives verdict in chat
   Hard ceiling     = INR 200 (~one full pass of the 40-question suite)
   Batching         = 6 questions per round (one per scenario/category), round by round
 
@@ -13,6 +13,11 @@ Usage:
   python run_eval.py --instance-path "D:/vantage-rumee" --max-rounds 1   # one round, then stop to observe
   python run_eval.py ... --categories platform_data_reading    # filter
   python run_eval.py ... --ids q001,q002                       # specific questions
+
+Human-judge mode (default):
+  Answers are logged with score='pending'. After the run, Claude (the session assistant)
+  reads the printed output and gives verdicts in chat. Use apply_verdicts.py to write them.
+  Pass --auto-judge to re-enable the Haiku API judge (legacy / batch mode only).
 
 Needs ANTHROPIC_API_KEY in the instance .env (billing enabled).
 
@@ -59,9 +64,10 @@ PRICING = {
 }
 DEFAULT_BUDGET_INR = 200.0
 DEFAULT_VANTAGE_MODEL = 'claude-opus-4-8'
-DEFAULT_JUDGE_MODEL = 'claude-haiku-4-5'
+DEFAULT_JUDGE_MODEL = 'claude-haiku-4-5'  # only used with --auto-judge
 TOKEN_SAFETY = 1.15   # over-estimate tokens by 15% so the cap stops early, never late
 QUESTIONS_PER_ROUND = 6
+DIVIDER = '─' * 54
 
 JUDGE_SYSTEM = """You are an expert evaluator for an AI ecommerce advisor called Vantage.
 Assess whether Vantage's answer to a question is correct per the rubric.
@@ -108,7 +114,7 @@ def _build_rounds(test_suite: list) -> list:
 
 def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
              budget_inr=DEFAULT_BUDGET_INR, vantage_model=DEFAULT_VANTAGE_MODEL,
-             judge_model=DEFAULT_JUDGE_MODEL, max_rounds=None):
+             judge_model=DEFAULT_JUDGE_MODEL, max_rounds=None, auto_judge=False):
     load_dotenv(Path(instance_path) / '.env')
     if not os.environ.get('ANTHROPIC_API_KEY'):
         print("ERROR: ANTHROPIC_API_KEY not found in the instance .env. Add it and re-run.")
@@ -165,10 +171,9 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
     stopped_on_budget = False
 
     for r_idx, rnd in enumerate(rounds, 1):
-        print(f"{'─'*54}\nROUND {r_idx}/{len(rounds)}\n{'─'*54}")
+        print(f"{DIVIDER}\nROUND {r_idx}/{len(rounds)}\n{DIVIDER}")
         round_results = []
         for q in rnd:
-            # Stop before a question if a typical question would cross the ceiling.
             if spend_usd + (5.0 / INR_PER_USD) > budget_usd:
                 stopped_on_budget = True
                 break
@@ -177,18 +182,31 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
             if ans is None:
                 print(f"  {q['id']} SKIP — Vantage error")
                 continue
-            judge, judge_cost = _judge_answer(q['question'], ans, q['expected'], judge_model, context)
-            if judge is None:
-                print(f"  {q['id']} SKIP — judge error")
-                continue
 
-            spend_usd += ans_cost + judge_cost
+            spend_usd += ans_cost
+            judge_cost = 0.0
+
+            if auto_judge:
+                judge, judge_cost = _judge_answer(q['question'], ans, q['expected'], judge_model, context)
+                if judge is None:
+                    print(f"  {q['id']} SKIP — judge error")
+                    continue
+                spend_usd += judge_cost
+                score    = judge.get('score')
+                reason   = judge.get('reason', '')
+                fail_cat = judge.get('failure_category')
+                judge_label = judge_model
+            else:
+                score    = 'pending'
+                reason   = ''
+                fail_cat = None
+                judge_label = 'human'
+
             result = {
                 'ts': _now(), 'run_id': run_id, 'round': r_idx, 'id': q['id'], 'category': q['category'],
                 'question': q['question'], 'vantage_answer': ans, 'expected': q['expected'],
-                'score': judge.get('score'), 'reason': judge.get('reason'),
-                'failure_category': judge.get('failure_category'),
-                'vantage_model': vantage_model, 'judge_model': judge_model,
+                'score': score, 'reason': reason, 'failure_category': fail_cat,
+                'vantage_model': vantage_model, 'judge_model': judge_label,
                 'cost_inr': round((ans_cost + judge_cost) * INR_PER_USD, 3),
                 'spend_inr_so_far': round(spend_usd * INR_PER_USD, 2),
             }
@@ -197,17 +215,41 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
             with open(LOG_PATH, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(result) + '\n')
 
-            label = {'pass': 'PASS', 'partial': 'PART', 'fail': 'FAIL'}.get(judge.get('score'), '?')
-            print(f"  {q['id']} [{q['category']}] {label} — {judge.get('reason','')}")
+            # Always print full answer + rubric so the human judge can read it
+            _print_for_human_judge(q, ans, score if auto_judge else None)
 
         if round_results:
-            rp = sum(1 for r in round_results if r['score'] == 'pass')
-            print(f"  → Round {r_idx}: {rp}/{len(round_results)} pass | spend Rs{spend_usd*INR_PER_USD:.1f}/{budget_inr:.0f}\n")
+            answered = len(round_results)
+            passed   = sum(1 for r in round_results if r['score'] == 'pass')
+            if auto_judge:
+                print(f"  → Round {r_idx}: {passed}/{answered} pass | spend Rs{spend_usd*INR_PER_USD:.1f}/{budget_inr:.0f}\n")
+            else:
+                print(f"\n  → Round {r_idx}: {answered} answers logged — AWAITING HUMAN VERDICTS\n"
+                      f"     spend Rs{spend_usd*INR_PER_USD:.1f}/{budget_inr:.0f}\n")
         if stopped_on_budget:
-            print(f"BUDGET CEILING reached — stopping before next question.\n")
+            print("BUDGET CEILING reached — stopping before next question.\n")
             break
 
     _print_summary(results, spend_usd, budget_inr)
+
+
+def _print_for_human_judge(q: dict, ans: str, auto_score=None):
+    """Print one Q&A block clearly so the human judge can read and score it."""
+    print(f"\n  {'='*50}")
+    print(f"  {q['id']} [{q['category']}]")
+    print(f"  Q: {q['question']}")
+    print(f"  {'─'*48}")
+    # Wrap answer at 80 chars for readability
+    for line in ans.splitlines():
+        print(f"  {line}")
+    print(f"  {'─'*48}")
+    print(f"  RUBRIC: {q['expected']}")
+    if auto_score:
+        label = {'pass': 'PASS', 'partial': 'PART', 'fail': 'FAIL'}.get(auto_score, '?')
+        print(f"  AUTO-JUDGE: {label}")
+    else:
+        print(f"  VERDICT: [PENDING — human judge]")
+    print(f"  {'='*50}\n")
 
 
 def _ask_vantage(system_prompt, context, question, profile, vantage_model):
@@ -254,6 +296,12 @@ def _print_summary(results, spend_usd, budget_inr):
     if not total:
         print("No results.")
         return
+    pending = sum(1 for r in results if r['score'] == 'pending')
+    if pending:
+        print(f"Total: {total} | {pending} PENDING human verdicts")
+        print(f"Run apply_verdicts.py to log scores after judging in chat.")
+        print(f"Spend: Rs{spend_usd*INR_PER_USD:.1f} of Rs{budget_inr:.0f} (${spend_usd:.2f})")
+        return
     scores = Counter(r['score'] for r in results)
     passes = scores.get('pass', 0)
     print(f"Total: {total} | Pass: {passes} ({passes/total*100:.0f}%) | "
@@ -293,7 +341,7 @@ def _now():
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Vantage eval loop (Opus answers, Haiku judge, INR cap)')
+    parser = argparse.ArgumentParser(description='Vantage eval loop (Opus answers, human judge by default)')
     parser.add_argument('--instance-path', required=True)
     parser.add_argument('--categories', help='Comma-separated category filter')
     parser.add_argument('--ids', help='Comma-separated question IDs')
@@ -301,6 +349,8 @@ if __name__ == '__main__':
     parser.add_argument('--vantage-model', default=DEFAULT_VANTAGE_MODEL)
     parser.add_argument('--judge-model', default=DEFAULT_JUDGE_MODEL)
     parser.add_argument('--max-rounds', type=int, help='Run only the first N rounds, then stop')
+    parser.add_argument('--auto-judge', action='store_true',
+                        help='Use Haiku API judge instead of human (legacy batch mode)')
     args = parser.parse_args()
 
     cats = [c.strip() for c in args.categories.split(',')] if args.categories else None
@@ -308,4 +358,5 @@ if __name__ == '__main__':
 
     run_eval(args.instance_path, filter_categories=cats, filter_ids=ids,
              budget_inr=args.budget_inr, vantage_model=args.vantage_model,
-             judge_model=args.judge_model, max_rounds=args.max_rounds)
+             judge_model=args.judge_model, max_rounds=args.max_rounds,
+             auto_judge=args.auto_judge)
