@@ -11,7 +11,7 @@ Usage:
   python run_eval.py --instance-path "D:/vantage-rumee"
   python run_eval.py --instance-path "D:/vantage-rumee" --budget-inr 200
   python run_eval.py --instance-path "D:/vantage-rumee" --max-rounds 1   # one round, then stop to observe
-  python run_eval.py ... --categories fk_skus_interpretation   # filter
+  python run_eval.py ... --categories platform_data_reading    # filter
   python run_eval.py ... --ids q001,q002                       # specific questions
 
 Needs ANTHROPIC_API_KEY in the instance .env (billing enabled).
@@ -121,7 +121,8 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
     if filter_ids:
         test_suite = [q for q in test_suite if q['id'] in filter_ids]
 
-    # Skip questions already answered in previous runs
+    # Skip questions already answered in the current cycle log only
+    # (archived logs are for report display only — not used for skip logic)
     already_answered = set()
     if LOG_PATH.exists():
         for line in LOG_PATH.open(encoding='utf-8'):
@@ -260,7 +261,7 @@ def _print_summary(results, spend_usd, budget_inr):
     print(f"Spend: Rs{spend_usd*INR_PER_USD:.1f} of Rs{budget_inr:.0f} (${spend_usd:.2f})")
 
     # Stage-1 trust gate: hallucination/refusal categories must be 100%.
-    trust_cats = {'no_hallucination', 'fk_skus_interpretation'}
+    trust_cats = {'no_hallucination', 'platform_data_reading'}
     trust = [r for r in results if r['category'] in trust_cats]
     if trust:
         tp = sum(1 for r in trust if r['score'] == 'pass')

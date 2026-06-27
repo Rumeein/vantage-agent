@@ -1,51 +1,51 @@
 [
   {
     "id": "q001",
-    "category": "fk_skus_interpretation",
+    "category": "platform_data_reading",
     "question": "What does our Flipkart ad performance look like overall?",
     "expected": "RUBRIC: Must describe FK ad metrics (spend, revenue, units, ROAS) as ad-attributed only — NOT total orders or total revenue. Must NOT claim fk_skus contains return data (returns come from fk_monthly/fk_orders, not fk_skus). Citing FK return rate from monthly data as context for net ROAS impact is correct and encouraged. Must cite at least one specific ROAS or spend figure from the brief."
   },
   {
     "id": "q002",
-    "category": "fk_skus_interpretation",
-    "question": "Which of our Flipkart products has the highest ad revenue?",
-    "expected": "RUBRIC: Must name a specific SKU and cite the ad_attributed_revenue_rs figure. Must make clear this is ad-attributed revenue, not total product revenue."
+    "category": "platform_data_reading",
+    "question": "Which of our Meesho catalogs is performing best on ads right now?",
+    "expected": "RUBRIC: Must reference me_ads_catalog or me_ads_daily data. Must name a specific catalog and cite its ROI (revenue / spend). ROI column does not exist in me_ads_catalog — must derive it as revenue / spend. Must cite actual figures. Must not guess or invent a catalog name."
   },
   {
     "id": "q003",
-    "category": "fk_skus_interpretation",
+    "category": "platform_data_reading",
     "question": "How many Flipkart orders did each of our SKUs get last month?",
     "expected": "REFUSAL REQUIRED: Must clearly say per-SKU Flipkart order data is not available. Only monthly totals exist in fk_monthly. Must not invent per-SKU order numbers."
   },
   {
     "id": "q004",
-    "category": "fk_skus_interpretation",
+    "category": "platform_data_reading",
     "question": "What is DJ-5's return rate on Flipkart?",
     "expected": "REFUSAL REQUIRED: Must say per-SKU Flipkart return rate data does not exist. Only overall monthly return rates in fk_monthly. Must not invent a number."
   },
   {
     "id": "q005",
-    "category": "fk_skus_interpretation",
+    "category": "platform_data_reading",
     "question": "How much stock do we have listed on Flipkart for each SKU?",
     "expected": "RUBRIC: Must say FK per-SKU stock data is not available/usable (the field is unpopulated or not in context). Must not draw conclusions about stock levels or claim zero stock as a fact. Accept any clear wording — 'unpopulated', 'unavailable', 'not provided' — do not require an exact phrase."
   },
   {
     "id": "q006",
-    "category": "fk_skus_interpretation",
-    "question": "What is the ROAS on our Flipkart ad campaigns?",
-    "expected": "RUBRIC: Must explain that ad spend (cost) data is not available in fk_skus, so ROAS cannot be precisely calculated. May reference ad_attributed_revenue_rs as the revenue side. Must not invent a ROAS figure."
+    "category": "platform_data_reading",
+    "question": "What is the return rate for each of our Meesho catalogs?",
+    "expected": "RUBRIC: Per-catalog return rate EXISTS on Meesho in me_skus (unlike Flipkart which only has overall return rate). Must answer using actual per-catalog data from me_skus. Must NOT refuse or say this data is unavailable — that is a fail. Must cite specific catalog names and their return rates."
   },
   {
     "id": "q007",
-    "category": "fk_skus_interpretation",
-    "question": "How many total units did we sell on Flipkart?",
-    "expected": "RUBRIC: Must distinguish between units_sold_via_ads (ad-driven only) and total units sold (not available per SKU). Must not present ad units as total sales."
+    "category": "platform_data_reading",
+    "question": "Between Flipkart and Meesho, where is our ad spend generating better returns right now?",
+    "expected": "RUBRIC: Must compare both platforms using actual data. FK ROAS is available from fk_ads_sku (or fk_ads_daily). Meesho ROI is available from me_ads_daily (overall) or me_ads_catalog (per catalog). Must cite specific ROAS and ROI figures from the brief for both platforms. Must give a clear data-backed answer on which is better — not a hedge. Must not answer by analysing only one platform."
   },
   {
     "id": "q008",
-    "category": "fk_skus_interpretation",
-    "question": "How many returns happened on Flipkart per SKU?",
-    "expected": "REFUSAL REQUIRED: Must say per-SKU Flipkart return data does not exist. Must not interpret units_sold_via_ads or any other column as return count. May refer to fk_monthly for overall return rate."
+    "category": "platform_data_reading",
+    "question": "Which of our Meesho listings are currently active versus paused or delisted?",
+    "expected": "REFUSAL REQUIRED: Must say Meesho listing status (active/paused/delisted) is not available in any Meesho download. Must not guess or infer listing status from order volume — absence of orders does NOT mean a listing is paused. Must say this data gap exists on Meesho (same as Flipkart)."
   },
   {
     "id": "q009",
