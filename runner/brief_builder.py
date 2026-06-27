@@ -1,8 +1,13 @@
 """
-Reads Rumee DB CSVs from GitHub, generates a compressed daily_brief.txt.
-Target: ~1,500 tokens vs ~8,000 for raw tables.
+Builds the daily_brief.txt for a Vantage business instance.
+Reads data from Firestore (or local DB CSVs) and generates a compressed
+snapshot for the LLM — ~700 tokens vs ~8,000 for raw tables.
 
-Run after the pipeline. Output: <instance_path>/daily_brief.txt
+Vantage is a multi-platform product. Sections: Flipkart, Meesho, Amazon
+(pending data integration), Experiments, Activity.
+Add new platform sections following the _fk_section / _me_section pattern.
+
+Run after the data pipeline. Output: <instance_path>/daily_brief.txt
 
 Usage:
   python brief_builder.py [--instance-path PATH]
@@ -42,10 +47,14 @@ def main():
     if ds_type == 'firestore':
         project_id = ds.get('project_id', '')
         api_key    = ds.get('api_key', '')
-        summary   = _parse_csv_string(_fs_fetch_doc(project_id, api_key, 'rumee_db', 'summary'))
-        ord_csv   = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_daily', n_months=3)
-        fk_orders = _parse_csv_string(ord_csv)
-        me_daily  = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_me_daily', n_months=1))
+        summary      = _parse_csv_string(_fs_fetch_doc(project_id, api_key, 'rumee_db', 'summary'))
+        ord_csv      = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_daily', n_months=3)
+        fk_orders    = _parse_csv_string(ord_csv)
+        me_daily     = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_me_daily', n_months=1))
+        fk_ads_sku      = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_sku', n_months=1))
+        fk_ads_daily    = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_daily', n_months=1))
+        me_ads_daily    = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_me_ads_daily', n_months=1))
+        me_ads_catalog  = _parse_csv_string(_fs_fetch_monthly(project_id, api_key, 'rumee_me_ads_catalog', n_months=1))
     else:
         db_path = ds.get('db_path', '').rstrip('/')
 
@@ -58,17 +67,26 @@ def main():
         # fk_orders_daily lives in rumee_db_daily.csv, not a separate file
         fk_orders = _load_db_csv(_url('rumee_db_daily.csv'))
         me_daily  = _load_db_csv(_url('rumee_db_daily.csv'))
+        _fk_ads_db      = _load_db_csv(_url('rumee_db_fk_ads.csv'))
+        fk_ads_sku      = _fk_ads_db
+        fk_ads_daily    = _fk_ads_db
+        _me_ads_db      = _load_db_csv(_url('rumee_db_me_ads.csv'))
+        me_ads_daily    = _me_ads_db
+        me_ads_catalog  = _me_ads_db
 
     experiments  = _load_json(instance / 'memory' / 'experiments.json')
     activity_log = instance / 'memory' / 'activity_log.jsonl'
     run_log      = _load_json(instance.parent / 'pipeline_run_log.json')
 
-    data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
+    data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {},
+            'fk_ads_sku': fk_ads_sku or {}, 'me_ads_catalog': me_ads_catalog or {}}
     coverage_gaps  = _check_coverage(run_log, data)
     pipeline_gaps  = [lbl for sid, lbl in _HEALTH_STREAMS
                       if run_log.get('stream_status', {}).get(sid) in ('gap', 'partial')]
 
     brief = _build_brief(summary, fk_orders, experiments, activity_log, me_daily, run_log,
+                         fk_ads_sku=fk_ads_sku, fk_ads_daily=fk_ads_daily,
+                         me_ads_daily=me_ads_daily, me_ads_catalog=me_ads_catalog,
                          _precomputed=(coverage_gaps, pipeline_gaps))
 
     output = instance / 'daily_brief.txt'
@@ -87,20 +105,24 @@ def main():
 
 
 def _build_brief(summary: dict, fk_orders: dict, experiments, activity_log: Path,
-                 me_daily: dict = None, run_log: dict = None, _precomputed=None) -> str:
+                 me_daily: dict = None, run_log: dict = None,
+                 fk_ads_sku: dict = None, fk_ads_daily: dict = None,
+                 me_ads_daily: dict = None, me_ads_catalog: dict = None,
+                 _precomputed=None) -> str:
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     parts = [f"DAILY SNAPSHOT — {today}", ""]
 
     if _precomputed is not None:
         coverage_gaps, _ = _precomputed
     else:
-        data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {}}
+        data = {'summary': summary, 'fk_orders': fk_orders or {}, 'me_daily': me_daily or {},
+                'fk_ads_sku': fk_ads_sku or {}, 'me_ads_catalog': me_ads_catalog or {}}
         coverage_gaps = _check_coverage(run_log, data)
     parts += _health_section(run_log, coverage_gaps)
     parts.append("")
-    parts += _fk_section(summary, fk_orders)
+    parts += _fk_section(summary, fk_orders, fk_ads_sku=fk_ads_sku, fk_ads_daily=fk_ads_daily)
     parts.append("")
-    parts += _me_section(summary, me_daily)
+    parts += _me_section(summary, me_daily, me_ads_daily=me_ads_daily, me_ads_catalog=me_ads_catalog)
     parts.append("")
     parts += _experiments_section(experiments)
     parts.append("")
@@ -132,13 +154,13 @@ _COVERAGE = {
     'me_orders':   lambda d: bool(d['summary'].get('me_monthly') or d['me_daily'].get('me_daily')),
     'me_payments': lambda d: bool(d['summary'].get('me_monthly')),
     'me_returns':  lambda d: bool(d['summary'].get('me_return_reasons')),
-    'me_ads':      lambda d: bool(d['summary'].get('me_skus')),
+    'me_ads':      lambda d: bool(d.get('me_ads_catalog', {}).get('me_ads_catalog') or d['summary'].get('me_skus')),
     'me_views':    lambda d: bool(d['summary'].get('me_views')),
     'fk_payments': lambda d: bool(d['summary'].get('fk_monthly')),
     'fk_views':    lambda d: bool(d['summary'].get('fk_monthly') or d['fk_orders'].get('fk_orders_daily')),
     'fk_orders':   lambda d: bool(d['fk_orders'].get('fk_orders_daily')),
     'fk_returns':  lambda d: bool(d['summary'].get('fk_monthly')),
-    'fk_ads':      lambda d: bool(d['summary'].get('fk_skus')),
+    'fk_ads':      lambda d: bool(d['summary'].get('fk_skus') or d.get('fk_ads_sku', {}).get('fk_ads_sku')),
     'fk_claims':   lambda d: bool(d['summary'].get('fk_claims')),
 }
 
@@ -204,7 +226,8 @@ def _health_section(run_log: dict, coverage_gaps: list = None) -> list:
     return lines
 
 
-def _fk_section(summary: dict, fk_orders: dict = None) -> list:
+def _fk_section(summary: dict, fk_orders: dict = None,
+                fk_ads_sku: dict = None, fk_ads_daily: dict = None) -> list:
     lines = ["=== FLIPKART ==="]
 
     fk_months = summary.get('fk_monthly', [])
@@ -262,6 +285,40 @@ def _fk_section(summary: dict, fk_orders: dict = None) -> list:
     else:
         lines.append("  (no SKU data)")
 
+    # FK ads per-SKU spend + ROAS (from fk_ads_sku — recent period, actual cost data)
+    sku_rows = (fk_ads_sku or {}).get('fk_ads_sku', [])
+    if sku_rows:
+        by_sku = defaultdict(lambda: {'spend': 0.0, 'revenue': 0.0, 'units': 0, 'name': ''})
+        for r in sku_rows:
+            s = r.get('sku_id', '?')
+            try: by_sku[s]['spend']   += float(r.get('ad_spend', 0) or 0)
+            except: pass
+            try: by_sku[s]['revenue'] += float(r.get('revenue', 0) or 0)
+            except: pass
+            try: by_sku[s]['units']   += int(float(r.get('units_sold', 0) or 0))
+            except: pass
+            if r.get('sku_name'):
+                by_sku[s]['name'] = r['sku_name']
+        top = sorted(by_sku.items(), key=lambda x: -x[1]['spend'])[:8]
+        if top:
+            lines.append("FK ads per-SKU (recent period — actual spend from FSN report):")
+            for sku, v in top:
+                roas = v['revenue'] / v['spend'] if v['spend'] else 0
+                name = v['name'][:25] or sku
+                lines.append(f"  {sku} ({name}): spend ₹{v['spend']:.0f}, revenue ₹{v['revenue']:.0f}, {v['units']} units, ROAS {roas:.2f}x")
+
+    # FK ads campaign daily ROAS trend (last 7 days)
+    daily_rows = (fk_ads_daily or {}).get('fk_ads_daily', [])
+    if daily_rows:
+        recent = sorted(daily_rows, key=lambda r: r.get('date', ''), reverse=True)[:7]
+        if recent:
+            lines.append("FK ads campaign daily (last 7d):")
+            for r in reversed(recent):
+                spend = _to_float(r.get('ad_spend', 0)) or 0
+                roas  = _to_float(r.get('roas', 0)) or 0
+                conv  = r.get('conversions', '?')
+                lines.append(f"  {r.get('date','?')}: spend ₹{spend:.0f}, ROAS {roas:.2f}x, {conv} conversions")
+
     # Daily order velocity (last 7 days)
     if fk_orders:
         daily = sorted(fk_orders.get('fk_orders_daily', []),
@@ -275,7 +332,8 @@ def _fk_section(summary: dict, fk_orders: dict = None) -> list:
     return lines
 
 
-def _me_section(summary: dict, me_daily: dict = None) -> list:
+def _me_section(summary: dict, me_daily: dict = None,
+                me_ads_daily: dict = None, me_ads_catalog: dict = None) -> list:
     lines = ["=== MEESHO ==="]
 
     me_months = summary.get('me_monthly', [])
@@ -349,6 +407,39 @@ def _me_section(summary: dict, me_daily: dict = None) -> list:
                 lines.append(f"  {reason}: {pct:.1f}%")
             elif count:
                 lines.append(f"  {reason}: {int(count)} cases")
+
+    # Meesho ads — overall spend + per-catalog ROI
+    daily_rows   = (me_ads_daily   or {}).get('me_ads_daily',   [])
+    catalog_rows = (me_ads_catalog or {}).get('me_ads_catalog', [])
+
+    if daily_rows:
+        total_spend   = sum(_to_float(r.get('spend',   0)) or 0 for r in daily_rows)
+        total_revenue = sum(_to_float(r.get('revenue', 0)) or 0 for r in daily_rows)
+        total_orders  = sum(_to_float(r.get('orders',  0)) or 0 for r in daily_rows)
+        overall_roi   = total_revenue / total_spend if total_spend else 0
+        lines.append(f"Meesho ads (recent period): spend ₹{total_spend:.0f}, revenue ₹{total_revenue:.0f}, "
+                     f"{int(total_orders)} orders, ROI {overall_roi:.2f}x")
+
+    if catalog_rows:
+        by_cat = defaultdict(lambda: {'spend': 0.0, 'revenue': 0.0, 'orders': 0, 'name': ''})
+        for r in catalog_rows:
+            cid = r.get('catalog_id', '?')
+            try: by_cat[cid]['spend']   += float(r.get('spend',   0) or 0)
+            except: pass
+            try: by_cat[cid]['revenue'] += float(r.get('revenue', 0) or 0)
+            except: pass
+            try: by_cat[cid]['orders']  += int(float(r.get('orders', 0) or 0))
+            except: pass
+            if r.get('catalog_name'):
+                by_cat[cid]['name'] = r['catalog_name']
+        top = sorted(by_cat.items(), key=lambda x: -x[1]['spend'])[:8]
+        if top:
+            lines.append("Meesho ads per catalog (recent period — actual spend):")
+            for cid, v in top:
+                roi  = v['revenue'] / v['spend'] if v['spend'] else 0
+                name = v['name'][:25] or cid
+                lines.append(f"  {name}: spend ₹{v['spend']:.0f}, revenue ₹{v['revenue']:.0f}, "
+                             f"{v['orders']} orders, ROI {roi:.2f}x")
 
     return lines
 

@@ -7,7 +7,7 @@ Setup:
   3. Invite the bot with Send Messages + Read Message History permissions
 
 Usage:
-  python discord_bot.py --instance-path "D:/Claude RuMee Dashbord/vantage"
+  python discord_bot.py --instance-path "D:/vantage-rumee"
 
 Commands (type in the watched channel):
   !status  — active/suggested experiment counts

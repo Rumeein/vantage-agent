@@ -25,7 +25,8 @@ Last updated: 2026-06-26
 11. [Cloud Hosting Plan](#11-cloud-hosting-plan)
 12. [Build Status](#12-build-status)
 13. [Key Decisions](#13-key-decisions)
-14. [How to Run](#14-how-to-run)
+14. [Buyer Portal Scraper — Planned Feature](#14-buyer-portal-scraper--planned-feature)
+15. [How to Run](#15-how-to-run)
 
 ---
 
@@ -327,39 +328,93 @@ All memory lives in `D:\Claude RuMee Dashbord\vantage\memory\`:
 
 ---
 
-## 10. Eval Loop Plan
+## 10. Eval Loop
 
-Automated training: run test questions through Vantage, judge answers with Claude Haiku, score and patch the system prompt.
+Automated quality gate: run test questions through Vantage (Claude Opus), judge answers with Claude Haiku, score and patch system_prompt/rubrics.
 
-**Prerequisite:** Data standardization (fk_skus rename) — DONE.
+**Status: ACTIVE. Round 2 next.**
 
-**Cost:**
-- Groq (Vantage answers): Free
-- Claude Haiku 4.5 (judge): ~$0.003 per question
+### Models and cost
+| Role | Model | Cost |
+|---|---|---|
+| Vantage (answers) | claude-opus-4-8 | ~₹4.5/question |
+| Judge | claude-haiku-4-5 | ~₹0.35/question |
+| Budget per run | ₹200 | ~41 questions max |
 
-**Budget cap:** `BUDGET_USD = 5.95` (₹500) hardcoded at top of eval script. Anthropic console monthly limit also set to $6 as backup.
-
-**Files to create (when building):**
+### Files
 ```
 D:\vantage-agent\eval\
-├── test_suite.json       — 50–200 questions with expected answers
-├── run_eval.py           — main loop: Vantage → Haiku judge → log
-├── eval_log.jsonl        — per-run results
-├── score_report.py       — aggregate stats, failure categories
-└── prompt_patcher.py     — auto-patch system_prompt.md from failures
+├── test_suite.json    — 40 questions across 6 categories
+├── run_eval.py        — main loop: Opus answer → Haiku judge → log
+├── eval_log.jsonl     — per-run results (append-only)
+└── publish_eval.py    — generates docs/eval_report.html from log
 ```
 
-**Test categories:**
-| Category | Example | What Haiku checks |
+### Test categories (40 questions)
+| Category | Questions | What is tested |
 |---|---|---|
-| fk_skus read | "Which FK SKU has highest ad spend?" | Matches actual top row |
-| Return rate | "What is Meesho's overall return rate?" | Within ±2% of me_monthly |
-| Stage calibration | "Should we run brand store ads?" | Says NO (Stage 1/2 business) |
-| Experiment format | Any suggestion | Has hypothesis + baseline + evaluate_after_days |
-| No hallucination | "How many FK orders did DJ-5 get?" | Refuses — data does not exist |
-| JSON schema | Nightly run output | Valid JSON matching output schema |
+| fk_skus_interpretation | 8 | Reads fk_ads_sku correctly, no hallucination on ad data |
+| return_rate | 6 | Per-SKU and platform-level return rate from me_skus/fk_skus |
+| stage_calibration | 8 | Refuses enterprise tactics for Stage 1/2 business |
+| experiment_format | 8 | Hypothesis + baseline + evaluate_after_days in every suggestion |
+| no_hallucination | 6 | Refuses questions that have no data; never invents numbers |
+| advice_quality | 4 | Data-aware prioritization; correct platform labeling |
 
-**Status: NOT STARTED — begins after GitHub Actions and cloud hosting are set up.**
+### Run command
+```
+python eval/run_eval.py --instance-path "D:\Claude RuMee Dashbord\vantage" --budget-inr 200 --max-rounds 1
+```
+
+### MANDATORY eval discipline — NO EXCEPTIONS
+**6 questions per round. Stop after every round. Review answers AND judge verdicts before continuing.**
+
+**Step 1 — Run the round:**
+`python eval/run_eval.py --instance-path "D:\Claude RuMee Dashbord\vantage" --budget-inr 200 --max-rounds 1`
+
+**Step 2 — Read every answer (Vantage output):**
+- Did it cite real data or invent something?
+- Did it follow experiment format where required?
+- Did it refuse correctly, or refuse something it should have answered?
+
+**Step 3 — Judge the judge (mandatory meta-review):**
+For every verdict, ask: is the judge correct?
+- Did the judge have the data it needed to verify citations? (judge gets data context since 2026-06-26)
+- Is the judge applying the rubric correctly, or being too strict on phrasing?
+- Is the judge calling something a hallucination when the number IS in the data?
+- Is the rubric itself stale (data has changed since rubric was written)?
+
+Classify each verdict as one of:
+- **GENUINE model error** — Vantage was actually wrong
+- **JUDGE ERROR** — Vantage was right, judge misfired (cite why)
+- **STALE RUBRIC** — Vantage was right, rubric is outdated (fix rubric, don't count as fail)
+
+Only GENUINE model errors count as failures that block the next round.
+
+**Step 4 — Decision:**
+- All 6 are PASS or JUDGE ERROR / STALE RUBRIC → report to user, get go-ahead for next round
+- Any GENUINE model error → STOP. Start new fix session. Only then continue.
+
+**Why:** The judge (Haiku) can be wrong. Round 1 proved it — q011 was called hallucination but the number was real. Accepting every judge verdict blindly produces a corrupted eval corpus.
+
+### Round history
+| Round | Date | Questions | Pass | Spend | Notes |
+|---|---|---|---|---|---|
+| Full 40Q | 2026-06-26 | 40 | 30/40 | ₹179 | Opus baseline. Stage-1 trust gate passed (zero hallucinations). Main gap: experiment_format 3/8. |
+| Round 1 | 2026-06-26 | 6 | 5/6 | ₹27 | 83% pass. q037 fail = stale rubric (human analysis). |
+
+### Pre-run checklist (before any new round)
+- [ ] All questions from last round reviewed and root-caused (not just scored)
+- [ ] Any system_prompt fix applied and confirmed
+- [ ] Any stale rubrics updated in test_suite.json
+- [ ] daily_brief.txt is current (run brief_builder.py if needed)
+- [ ] ANTHROPIC_API_KEY is set in D:\Claude RuMee Dashbord\vantage\.env
+
+### Fixes applied before Round 2 (2026-06-27)
+- experiment_format Rules 6/7/8 added to system_prompt (alert-first, plans decompose, format mandatory in Q&A)
+- q039 rubric updated: ROAS IS now available from fk_ads_sku — do not refuse on "uncomputable" grounds
+- ME ads data wired into brief (me_ads_catalog, me_ads_daily) — Meesho ads ROI now visible to Vantage
+- FK ads per-SKU ROAS + daily trend in brief since 2026-06-27
+- Meesho June 0 in me_monthly = settlement lag (not collapse) — daily shows ~12 orders/day
 
 ---
 
@@ -407,6 +462,8 @@ D:\vantage-agent\eval\
 | Discord bot on cloud server (24/7) | **Pending** |
 | Eval loop (automated training) | Not started |
 | onboard.py (new business onboarding) | Not started |
+| Buyer portal scraper (AutoSync job) | Planned — blocked on URL collection. FK URLs: extract from fk_listings download. Meesho URLs: manual one-time collection. |
+| context_builder.py reads listing_snapshot | Planned — after AutoSync scraper is built |
 
 ---
 
@@ -424,10 +481,70 @@ D:\vantage-agent\eval\
 | Cloud hosting platform | Fly.io (free tier, always on) — to be confirmed | 2026-06-20 |
 | me_monthly current month | Always 0 until orders settle (5-7 day lag). Use `me_daily.orders_placed` for current-month activity. | 2026-06-26 |
 | Brief data integrity | Every brief runs coverage spec + DATA HEALTH block. Gaps trigger Discord alert. Adding a new pipeline stream requires updating `_COVERAGE` in brief_builder.py. | 2026-06-26 |
+| Buyer portal scraper ownership | Lives in AutoSync (Chrome extension), not Vantage. Data acquisition = AutoSync's job. Output to Firestore `rumee_listing_snapshot`. | 2026-06-26 |
+| Buyer portal scraper frequency | Weekly. All 5 gap items (rating, reviews, badges, Q&A, people-also-viewed) on same schedule. | 2026-06-26 |
 
 ---
 
-## 14. How to Run
+## 14. Buyer Portal Scraper — Planned Feature
+
+Gives Vantage visibility into what buyers see on Flipkart and Meesho listing pages.
+
+### What to scrape (not available in any current download)
+
+| Item | FK | Meesho | Notes |
+|---|---|---|---|
+| Rating average + count | Y | Y | Strongest buyer trust signal |
+| Reviews (text, star, date, verified) | Y | Y | Top 10 per SKU — only source of buyer voice |
+| Badges (FK Assured, etc.) | Y | Y | Loss of badge = direct conversion hit |
+| Q&A (buyer questions + answers) | Y | — | Reveals listing gaps |
+| "People also viewed" sidebar | Y | Y | Competitive context |
+
+### What is NOT scraped (already in daily downloads)
+
+Title, description, price, stock, specs, category — all in the listing download. Price variation visible in orders data.
+
+### Architecture
+
+```
+AutoSync (Chrome extension) — weekly scraper job
+    → visits buyer-facing product URLs (flipkart.com, meesho.com)
+    → real Chrome session: JS-rendered reviews/ratings load naturally
+    → writes to Firestore: rumee_listing_snapshot/{SKU}
+
+Vantage (context_builder.py)
+    → reads rumee_listing_snapshot from Firestore
+    → brief surfaces: rating changes, badge status, latest negative review summary
+    → full snapshot available for on-demand queries ("show me 1-star reviews for DJ-14")
+```
+
+### URL status
+
+| Platform | Status |
+|---|---|
+| Flipkart | FSN in listing file for all SKUs. Full buyer URL needed (FSN-only = E002). "Link for Buyer Portal" column in fk_listings — populated for some SKUs. AutoSync fk_listings job to extract + store these. |
+| Meesho | No URLs in any download. Manual one-time collection (~20 SKUs). |
+
+### Firestore collection
+
+`rumee_listing_snapshot` — one doc per SKU, weekly overwrite. Schema:
+```json
+{
+  "sku": "DJ-14",
+  "platform": "meesho",
+  "scraped_at": "2026-06-29",
+  "rating_avg": 4.2,
+  "rating_count": 138,
+  "reviews": [{"star": 1, "text": "...", "date": "...", "verified": true}],
+  "badges": ["Meesho Assured"],
+  "qa": [{"question": "...", "answer": "..."}],
+  "people_also_viewed": [{"title": "...", "url": "..."}]
+}
+```
+
+---
+
+## 15. How to Run
 
 ### Nightly analysis (local, for testing)
 ```

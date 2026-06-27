@@ -2,8 +2,8 @@
 Vantage nightly runner.
 
 Usage:
-  python agent.py --instance-path "D:/Claude RuMee Dashbord/vantage"
-  python agent.py --instance-path "D:/Claude RuMee Dashbord/vantage" --full-audit
+  python agent.py --instance-path "D:/vantage-rumee"
+  python agent.py --instance-path "D:/vantage-rumee" --full-audit
 
 Modes:
   default     Single nightly pass (fk_monthly, me_monthly, top SKUs, views, return reasons)

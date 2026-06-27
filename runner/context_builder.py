@@ -3,16 +3,29 @@ Assembles context from the business instance folder into a single string
 for the LLM. Reads business data from Firestore (type=firestore) or local/URL
 CSV files (type=db), as configured in business_profile.json["data_source"].
 
-Firestore collections (rumee-dashboard-6c4c6):
-  rumee_db/summary          — all summary tables (fk_monthly, me_monthly, fk_skus, …)
-  rumee_fk_daily/{YYYY_MM}  — fk_daily rows for that month
-  rumee_me_daily/{YYYY_MM}  — me_daily rows for that month
+Vantage is a multi-platform product. Tables prefixed fk_ = Flipkart,
+me_ = Meesho, am_ = Amazon (not yet integrated). Add new platform tables
+following the same prefix convention.
+
+Firestore collections (example: rumee-dashboard-6c4c6):
+  rumee_db/summary             — summary tables: fk_monthly, me_monthly, fk_skus, me_skus, …
+  rumee_fk_daily/{YYYY_MM}     — FK daily rows for that month
+  rumee_me_daily/{YYYY_MM}     — Meesho daily rows for that month
   rumee_orders_daily/{YYYY_MM} — fk_orders_daily rows
   rumee_orders_sku/{YYYY_MM}   — fk_orders_sku rows
+  rumee_fk_ads_sku/{YYYY_MM}         — FK per-SKU ad spend + ROAS (from FSN report)
+  rumee_fk_ads_daily/{YYYY_MM}       — FK campaign-level daily ROAS
+  rumee_fk_ads_kw/{YYYY_MM}          — FK keyword performance
+  rumee_fk_ads_placements/{YYYY_MM}  — FK placement-level spend breakdown
+  rumee_fk_ads_order_items/{YYYY_MM} — FK ad-attributed order line items
+  rumee_me_ads_daily/{YYYY_MM}       — Meesho campaign daily: spend, revenue, orders, roi, cpo
+  rumee_me_ads_catalog/{YYYY_MM}     — Meesho per-catalog: spend, revenue, orders, clicks, cpc
 
 Table sets per mode:
-  nightly       — fk_monthly, me_monthly, fk_skus (top 20), me_skus, me_return_reasons, me_views, fk_orders_daily
-  monthly_sku   — fk_monthly, me_monthly, fk_skus (top 20), me_skus, me_state_summary, fk_zone_summary, fk_pairs
+  nightly       — fk_monthly, me_monthly, fk_skus, me_skus, me_return_reasons,
+                  me_views, fk_orders_daily, fk_ads_sku, fk_ads_daily
+  monthly_sku   — fk_monthly, me_monthly, fk_skus, me_skus, me_state_summary,
+                  fk_zone_summary, fk_pairs
   recent_daily  — fk_daily, me_daily (last 30 days, aggregated by date), fk_orders_daily
   state_kw      — me_views, fk_keywords (top 40), me_return_reasons, me_claims (last 20)
 """
@@ -32,11 +45,14 @@ _SUMMARY_TABLES = frozenset({
     'me_return_reasons', 'fk_pairs', 'fk_keywords',
     'me_claims', 'me_views', 'me_state_summary', 'fk_zone_summary', 'config',
 })
-_DAILY_TABLES   = frozenset({'fk_daily', 'me_daily'})
+_DAILY_TABLES     = frozenset({'fk_daily', 'me_daily'})
 _FK_ORDERS_TABLES = frozenset({'fk_orders_daily', 'fk_orders_sku'})
+_ADS_TABLES       = frozenset({'fk_ads_sku', 'fk_ads_daily', 'fk_ads_kw',
+                               'fk_ads_placements', 'fk_ads_order_items',
+                               'me_ads_daily', 'me_ads_catalog'})
 
 _PASS_TABLES = {
-    'nightly':      ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_return_reasons', 'me_views', 'fk_orders_daily'],
+    'nightly':      ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_return_reasons', 'me_views', 'fk_orders_daily', 'fk_ads_sku', 'fk_ads_daily', 'me_ads_daily', 'me_ads_catalog'],
     'monthly_sku':  ['fk_monthly', 'me_monthly', 'fk_skus', 'me_skus', 'me_state_summary', 'fk_zone_summary', 'fk_pairs'],
     'recent_daily': ['fk_daily', 'me_daily', 'fk_orders_daily'],
     'state_kw':     ['me_views', 'fk_keywords', 'me_return_reasons', 'me_claims'],
@@ -50,6 +66,13 @@ _TABLE_LIMITS = {
     'me_claims':        20,
     'fk_orders_daily':  30,
     'fk_orders_sku':    50,
+    'fk_ads_sku':           20,
+    'fk_ads_daily':         14,
+    'fk_ads_kw':            30,
+    'fk_ads_placements':    30,
+    'fk_ads_order_items':   30,
+    'me_ads_daily':         14,
+    'me_ads_catalog':       30,
 }
 
 
@@ -64,12 +87,17 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
 
     profile = _load_json(base / 'business_profile.json')
 
-    if mode == 'brief':
-        brief_file = base / 'daily_brief.txt'
-        if not brief_file.exists():
-            raise FileNotFoundError(
-                f"daily_brief.txt not found at {brief_file}. Run brief_builder.py first."
-            )
+    # 'brief' (eval) and 'discord' (live Q&A) share ONE context so the eval tests
+    # exactly what production serves. 'brief' hard-requires the file; 'discord' falls
+    # back to live raw tables if the brief has not been built yet, so the bot never crashes.
+    brief_file = base / 'daily_brief.txt'
+    use_brief = mode in ('brief', 'discord') and brief_file.exists()
+    if mode == 'brief' and not use_brief:
+        raise FileNotFoundError(
+            f"daily_brief.txt not found at {brief_file}. Run brief_builder.py first."
+        )
+
+    if use_brief:
         brief_content = brief_file.read_text(encoding='utf-8')
         experiments = _load_json(memory / 'experiments.json')
         learnings   = _load_json(memory / 'learnings.json')
@@ -116,6 +144,7 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
     summary_wanted   = [t for t in requested if t in _SUMMARY_TABLES]
     daily_wanted     = [t for t in requested if t in _DAILY_TABLES]
     fk_orders_wanted = [t for t in requested if t in _FK_ORDERS_TABLES]
+    fk_ads_wanted    = [t for t in requested if t in _ADS_TABLES]
 
     db_data = {}
 
@@ -135,6 +164,22 @@ def build_context(instance_path: str, mode: str = 'nightly', tables: list = None
             ord_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_daily')
             sku_csv = _fs_fetch_monthly(project_id, api_key, 'rumee_orders_sku', n_months=1)
             db_data.update(_parse_db_csv(ord_csv + '\n' + sku_csv, fk_orders_wanted))
+        if fk_ads_wanted:
+            _ads_parts = []
+            if any(t in fk_ads_wanted for t in ('fk_ads_sku', 'fk_ads_daily', 'fk_ads_kw', 'fk_ads_placements', 'fk_ads_order_items')):
+                _ads_parts += [
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_sku', n_months=1),
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_daily', n_months=1),
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_kw', n_months=1),
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_placements', n_months=1),
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_fk_ads_order_items', n_months=1),
+                ]
+            if any(t in fk_ads_wanted for t in ('me_ads_daily', 'me_ads_catalog')):
+                _ads_parts += [
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_me_ads_daily', n_months=1),
+                    _fs_fetch_monthly(project_id, api_key, 'rumee_me_ads_catalog', n_months=1),
+                ]
+            db_data.update(_parse_db_csv('\n'.join(_ads_parts), fk_ads_wanted))
     else:
         db_path = ds.get('db_path', '')
 
@@ -278,6 +323,20 @@ def _format_table(table_name: str, rows: list) -> str:
         rows = sorted(rows, key=lambda r: r.get('created_date', ''), reverse=True)
     elif table_name in ('fk_orders_daily', 'fk_orders_sku'):
         rows = sorted(rows, key=lambda r: r.get('date', ''), reverse=True)
+    elif table_name == 'fk_ads_sku':
+        rows = sorted(rows, key=lambda r: _to_float(r.get('ad_spend')) or 0, reverse=True)
+    elif table_name == 'fk_ads_daily':
+        rows = sorted(rows, key=lambda r: r.get('date', ''), reverse=True)
+    elif table_name == 'fk_ads_kw':
+        rows = sorted(rows, key=lambda r: _to_float(r.get('spend')) or 0, reverse=True)
+    elif table_name == 'fk_ads_placements':
+        rows = sorted(rows, key=lambda r: _to_float(r.get('spend')) or _to_float(r.get('ad_spend')) or 0, reverse=True)
+    elif table_name == 'fk_ads_order_items':
+        rows = sorted(rows, key=lambda r: r.get('date', ''), reverse=True)
+    elif table_name == 'me_ads_daily':
+        rows = sorted(rows, key=lambda r: r.get('date', ''), reverse=True)
+    elif table_name == 'me_ads_catalog':
+        rows = sorted(rows, key=lambda r: _to_float(r.get('spend')) or 0, reverse=True)
 
     if limit:
         rows = rows[:limit]

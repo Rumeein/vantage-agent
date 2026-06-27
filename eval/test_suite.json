@@ -1,0 +1,242 @@
+[
+  {
+    "id": "q001",
+    "category": "fk_skus_interpretation",
+    "question": "What does our Flipkart ad performance look like overall?",
+    "expected": "RUBRIC: Must reference ad_attributed_revenue_rs and/or units_sold_via_ads. Must NOT describe these as total orders or total revenue. Must NOT mention return counts for fk_skus columns."
+  },
+  {
+    "id": "q002",
+    "category": "fk_skus_interpretation",
+    "question": "Which of our Flipkart products has the highest ad revenue?",
+    "expected": "RUBRIC: Must name a specific SKU and cite the ad_attributed_revenue_rs figure. Must make clear this is ad-attributed revenue, not total product revenue."
+  },
+  {
+    "id": "q003",
+    "category": "fk_skus_interpretation",
+    "question": "How many Flipkart orders did each of our SKUs get last month?",
+    "expected": "REFUSAL REQUIRED: Must clearly say per-SKU Flipkart order data is not available. Only monthly totals exist in fk_monthly. Must not invent per-SKU order numbers."
+  },
+  {
+    "id": "q004",
+    "category": "fk_skus_interpretation",
+    "question": "What is DJ-5's return rate on Flipkart?",
+    "expected": "REFUSAL REQUIRED: Must say per-SKU Flipkart return rate data does not exist. Only overall monthly return rates in fk_monthly. Must not invent a number."
+  },
+  {
+    "id": "q005",
+    "category": "fk_skus_interpretation",
+    "question": "How much stock do we have listed on Flipkart for each SKU?",
+    "expected": "RUBRIC: Must say FK per-SKU stock data is not available/usable (the field is unpopulated or not in context). Must not draw conclusions about stock levels or claim zero stock as a fact. Accept any clear wording — 'unpopulated', 'unavailable', 'not provided' — do not require an exact phrase."
+  },
+  {
+    "id": "q006",
+    "category": "fk_skus_interpretation",
+    "question": "What is the ROAS on our Flipkart ad campaigns?",
+    "expected": "RUBRIC: Must explain that ad spend (cost) data is not available in fk_skus, so ROAS cannot be precisely calculated. May reference ad_attributed_revenue_rs as the revenue side. Must not invent a ROAS figure."
+  },
+  {
+    "id": "q007",
+    "category": "fk_skus_interpretation",
+    "question": "How many total units did we sell on Flipkart?",
+    "expected": "RUBRIC: Must distinguish between units_sold_via_ads (ad-driven only) and total units sold (not available per SKU). Must not present ad units as total sales."
+  },
+  {
+    "id": "q008",
+    "category": "fk_skus_interpretation",
+    "question": "How many returns happened on Flipkart per SKU?",
+    "expected": "REFUSAL REQUIRED: Must say per-SKU Flipkart return data does not exist. Must not interpret units_sold_via_ads or any other column as return count. May refer to fk_monthly for overall return rate."
+  },
+  {
+    "id": "q009",
+    "category": "return_rate",
+    "question": "What is our current Meesho return rate?",
+    "expected": "RUBRIC: Must give a figure from me_monthly data. Should contextualize it against the 15% threshold (above = algorithmic suppression risk). Must cite actual data, not guess."
+  },
+  {
+    "id": "q010",
+    "category": "return_rate",
+    "question": "What is our Flipkart return rate and is it normal?",
+    "expected": "RUBRIC: Must reference fk_monthly. Rate is 43-65% which is very high — must flag this as alarming and a top priority. Must NOT say this is normal or acceptable."
+  },
+  {
+    "id": "q011",
+    "category": "return_rate",
+    "question": "Which Meesho catalog has the worst return rate?",
+    "expected": "RUBRIC: Should identify the SKU with the highest return rate from me_skus data. Must cite actual per-SKU data. Must not guess or invent a catalog name."
+  },
+  {
+    "id": "q012",
+    "category": "return_rate",
+    "question": "Should I be worried about our return rates?",
+    "expected": "RUBRIC: Must flag FK return rate (43-65%) as urgent. Must check if any Meesho SKU exceeds 15% threshold. Must not give a generic reassuring answer — must cite actual numbers."
+  },
+  {
+    "id": "q013",
+    "category": "return_rate",
+    "question": "What are the top reasons customers are returning our Meesho products?",
+    "expected": "RUBRIC: Must reference me_return_reasons data. Must cite specific reasons with counts or percentages. Must not give generic guesses about return reasons."
+  },
+  {
+    "id": "q014",
+    "category": "return_rate",
+    "question": "How do I reduce our return rate on Meesho?",
+    "expected": "RUBRIC: Must give actionable advice tied to actual return reasons (images, size charts, accurate descriptions). Must frame as an experiment with measurable outcome. Must not give vague generic tips."
+  },
+  {
+    "id": "q015",
+    "category": "stage_calibration",
+    "question": "Should we open a brand store on Flipkart?",
+    "expected": "RUBRIC: Must say NO. Brand stores are Stage 3/4 tactics. A Stage 1/2 business should focus on catalog quality and organic ranking. Must cite stage reasoning."
+  },
+  {
+    "id": "q016",
+    "category": "stage_calibration",
+    "question": "Should we build our own D2C website to sell jewellery directly?",
+    "expected": "RUBRIC: Must say NOT YET. D2C requires brand recognition and traffic. Stage 3/4 play. Stage 1/2 business must first dominate marketplace channels."
+  },
+  {
+    "id": "q017",
+    "category": "stage_calibration",
+    "question": "Should we expand to Amazon India right now?",
+    "expected": "RUBRIC: Must say not the right priority. Multi-platform expansion is Stage 3 strategy. Focus on mastering Meesho and Flipkart first. Must explain why."
+  },
+  {
+    "id": "q018",
+    "category": "stage_calibration",
+    "question": "Should we run Instagram ads to drive traffic to our Meesho store?",
+    "expected": "RUBRIC: Must say NO for Stage 1/2. Social ads driving external traffic to marketplace is inefficient at this stage. Marketplace ads (Meesho CPO ads) work better and are measurable. Must cite stage reasoning."
+  },
+  {
+    "id": "q019",
+    "category": "stage_calibration",
+    "question": "What stage is our business at and what does that mean for our strategy?",
+    "expected": "RUBRIC: Must correctly identify Stage 1 or Stage 2 based on revenue in business profile. Must explain what that means for priorities (catalog quality, organic first, selective ads). Must cite the revenue figure."
+  },
+  {
+    "id": "q020",
+    "category": "stage_calibration",
+    "question": "Should we run brand awareness campaigns on Meesho?",
+    "expected": "RUBRIC: Must say NO for Stage 1/2. Brand awareness ads are Stage 3+ plays. At this stage, every rupee must go to direct-response ads with measurable ROAS. Must explain the reasoning."
+  },
+  {
+    "id": "q021",
+    "category": "stage_calibration",
+    "question": "Should we hire a dedicated social media manager?",
+    "expected": "RUBRIC: Not the priority for Stage 1/2. Focus on operations and catalog quality first. Social media ROI is hard to measure at this stage. Must give a reasoned NO with alternative focus areas."
+  },
+  {
+    "id": "q022",
+    "category": "stage_calibration",
+    "question": "Can we start doing influencer marketing for our jewellery?",
+    "expected": "RUBRIC: Not recommended for Stage 1/2. Influencer ROI is hard to track. Stage 1/2 should stick to marketplace ads with measurable ROAS. Must cite stage reasoning."
+  },
+  {
+    "id": "q023",
+    "category": "experiment_format",
+    "question": "Suggest an experiment to reduce our Meesho return rate for DJ-6.",
+    "expected": "RUBRIC: Must include ALL of: (1) hypothesis in If/then/because format, (2) specific baseline metric with current value, (3) evaluate_after_days (should be 30 for return rate), (4) single variable change only. Fail if any element is missing."
+  },
+  {
+    "id": "q024",
+    "category": "experiment_format",
+    "question": "How can we test whether better images will improve our Meesho sales?",
+    "expected": "RUBRIC: Must include: hypothesis (If we add lifestyle images to catalog X, then return rate / CTR will change from baseline to target because...), baseline metric, evaluate_after_days (14 for CTR, 30 for returns). Must specify one catalog, not all at once."
+  },
+  {
+    "id": "q025",
+    "category": "experiment_format",
+    "question": "Should we test a price change on our best-selling Meesho catalog?",
+    "expected": "RUBRIC: Must suggest a specific price test with: hypothesis, current price as baseline, target price, which metric changes (orders, ROAS), evaluate_after_days = 14. Must change price only, not title or images at the same time."
+  },
+  {
+    "id": "q026",
+    "category": "experiment_format",
+    "question": "How do we test if adding a size chart reduces returns?",
+    "expected": "RUBRIC: Must include: hypothesis (adding size chart to catalog X will reduce return rate from current% to target%), baseline return rate, evaluate_after_days = 30. Single variable: size chart only, nothing else changes."
+  },
+  {
+    "id": "q027",
+    "category": "experiment_format",
+    "question": "Give me a growth plan for Meesho over the next 3 months.",
+    "expected": "RUBRIC: Must NOT give a single monolithic plan. Must break into individual experiments each with hypothesis + baseline + evaluate_after_days. Each experiment changes one variable. Must prioritize by stop-the-bleeding first."
+  },
+  {
+    "id": "q028",
+    "category": "experiment_format",
+    "question": "How should we test Flipkart keyword optimization?",
+    "expected": "RUBRIC: Must suggest a specific keyword experiment: add negative keywords or move to exact match for a specific term. Must include hypothesis, baseline ROAS or CTR, evaluate_after_days = 14. Single change only."
+  },
+  {
+    "id": "q029",
+    "category": "experiment_format",
+    "question": "Suggest an experiment to improve our Flipkart ad performance.",
+    "expected": "RUBRIC: Must follow hypothesis format. Must identify one specific lever (bid adjustment, keyword pruning, catalog quality fix). Must include baseline metric (current ROAS or spend) and evaluate_after_days. Must not suggest multiple changes at once."
+  },
+  {
+    "id": "q030",
+    "category": "experiment_format",
+    "question": "What should we test to improve Meesho views?",
+    "expected": "RUBRIC: Must suggest one specific experiment (title change, keyword addition, or freshness — upload new catalog). Must include hypothesis, current views baseline from me_views if available, evaluate_after_days = 7 or 14."
+  },
+  {
+    "id": "q031",
+    "category": "no_hallucination",
+    "question": "How much profit did we make last month?",
+    "expected": "REFUSAL REQUIRED: Must say profit data is not available. Only settlement revenue and ad spend are in the data — cost of goods, shipping, and platform fees are not tracked. Cannot calculate profit. Must not invent a figure."
+  },
+  {
+    "id": "q032",
+    "category": "no_hallucination",
+    "question": "What is DJ-3's total revenue on Flipkart?",
+    "expected": "REFUSAL REQUIRED: Must say per-SKU total revenue on Flipkart is not available. Only ad-attributed revenue (revenue_earned_rs) is in fk_skus — not total SKU revenue. Must not invent a number."
+  },
+  {
+    "id": "q033",
+    "category": "no_hallucination",
+    "question": "What is our customer lifetime value on Meesho?",
+    "expected": "REFUSAL REQUIRED: Must say CLV data is not available. This requires repeat purchase data which does not exist in the DB. Must not invent or estimate a CLV figure."
+  },
+  {
+    "id": "q034",
+    "category": "no_hallucination",
+    "question": "How many new customers did we acquire last month?",
+    "expected": "REFUSAL REQUIRED: Must say new vs returning customer data is not available in the current DB. Must not invent acquisition numbers."
+  },
+  {
+    "id": "q035",
+    "category": "no_hallucination",
+    "question": "What is our average order value on Meesho?",
+    "expected": "RUBRIC: May compute GMV / orders from me_monthly if both fields are available. Must use actual data. Must not invent. If data is insufficient to compute, must say so."
+  },
+  {
+    "id": "q036",
+    "category": "no_hallucination",
+    "question": "What is our market share in the jewellery category on Meesho?",
+    "expected": "REFUSAL REQUIRED: Must say market share data is not available. Only our own performance metrics are in the DB — competitor data does not exist. Must not guess or estimate market share."
+  },
+  {
+    "id": "q037",
+    "category": "advice_quality",
+    "question": "What is the single most important thing we should fix right now?",
+    "expected": "RUBRIC: Must identify the most urgent issue from the CURRENT data and justify why it outranks the others. Prioritization must be data-aware: a sudden revenue collapse (e.g. a platform's orders dropping to ~0 vs the prior month) outranks a chronic high return rate. Acceptable: prioritizing a live order/revenue collapse if one is present in the data, OR the Flipkart return rate (alarming, ~40-65%) if there is no acute collapse. Must cite actual figures and not invent a cause for any data gap (verify-first is correct). Fail only for: a generic answer, invented numbers, or mis-ranking a chronic issue above an acute revenue-zeroing event."
+  },
+  {
+    "id": "q038",
+    "category": "advice_quality",
+    "question": "Which is our stronger platform right now — Meesho or Flipkart?",
+    "expected": "RUBRIC: Must compare using actual data from fk_monthly and me_monthly. Must cite specific metrics (GMV, return rate, orders). Must give a clear data-backed conclusion, not a hedge."
+  },
+  {
+    "id": "q039",
+    "category": "advice_quality",
+    "question": "Should we increase our overall ad budget next month?",
+    "expected": "RUBRIC: FK ROAS IS available per SKU from fk_ads_sku (ad_spend + roas columns in brief). Meesho ROI IS available per catalog from me_ads_catalog. A correct answer must cite actual ROAS or ROI figures from the data and give a data-driven recommendation. Scale FK ads if ROAS > 3x; pause or investigate if Meesho is at 0 orders. Must NOT refuse on grounds that ROAS is unavailable -- it is available. Fail only for: (a) inventing figures not in data, or (b) a generic yes/no with no data reasoning."
+  },
+  {
+    "id": "q040",
+    "category": "advice_quality",
+    "question": "What are the top 3 actions we should take this week?",
+    "expected": "RUBRIC: Must give 3 prioritized actions ranked by CURRENT severity, each tied to real data. Ranking must be data-aware: a live revenue collapse (e.g. a platform at ~0 orders vs prior month) ranks above chronic issues. Strong answers include the Flipkart return rate and the highest-return Meesho catalog among the priorities. Must cite actual figures; no generic advice. Do NOT penalize correct data-driven reordering (e.g. Meesho collapse first)."
+  }
+]

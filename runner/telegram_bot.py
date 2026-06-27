@@ -7,7 +7,7 @@ Setup:
   3. Add both to your .env file in the business vantage/ folder
 
 Usage:
-  python telegram_bot.py --instance-path "D:/Claude RuMee Dashbord/vantage"
+  python telegram_bot.py --instance-path "D:/vantage-rumee"
 
 What it does:
   - Polls for new messages
