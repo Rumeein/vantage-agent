@@ -332,7 +332,18 @@ All memory lives in `D:\Claude RuMee Dashbord\vantage\memory\`:
 
 Automated quality gate: run test questions through Vantage (Claude Opus), judge answers with Claude Haiku, score and patch system_prompt/rubrics.
 
-**Status: ACTIVE. Round 2 next.**
+**Status: ACTIVE. Round 2 complete (2026-06-27). Round 3 next.**
+
+### Eval report — publishing
+After each round, run `python eval/publish_eval.py` then commit + push `docs/eval_report.html`.
+Live at: https://rumeein.github.io/vantage-agent/eval_report.html
+Safe to publish on the public repo — `<meta name="robots" content="noindex,nofollow">` is in the template.
+
+### Round results
+| Round | Date | Pass | Spend | Notes |
+|---|---|---|---|---|
+| 1 | 2026-06-26 | 5/6 (83%) effective | ₹27 | q037 stale rubric (judge error) |
+| 2 | 2026-06-27 | 6/6 (100%) effective | ₹41 | q001 judge error — ROAS IS in brief |
 
 ### Models and cost
 | Role | Model | Cost |
