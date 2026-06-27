@@ -124,6 +124,7 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
         print("No questions matched filters.")
         return
 
+    run_id = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     budget_usd = budget_inr / INR_PER_USD
     rounds = _build_rounds(test_suite)
     if max_rounds:
@@ -164,7 +165,7 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
 
             spend_usd += ans_cost + judge_cost
             result = {
-                'ts': _now(), 'round': r_idx, 'id': q['id'], 'category': q['category'],
+                'ts': _now(), 'run_id': run_id, 'round': r_idx, 'id': q['id'], 'category': q['category'],
                 'question': q['question'], 'vantage_answer': ans, 'expected': q['expected'],
                 'score': judge.get('score'), 'reason': judge.get('reason'),
                 'failure_category': judge.get('failure_category'),

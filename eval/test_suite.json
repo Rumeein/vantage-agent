@@ -3,7 +3,7 @@
     "id": "q001",
     "category": "fk_skus_interpretation",
     "question": "What does our Flipkart ad performance look like overall?",
-    "expected": "RUBRIC: Must reference ad_attributed_revenue_rs and/or units_sold_via_ads. Must NOT describe these as total orders or total revenue. Must NOT mention return counts for fk_skus columns."
+    "expected": "RUBRIC: Must describe FK ad metrics (spend, revenue, units, ROAS) as ad-attributed only — NOT total orders or total revenue. Must NOT claim fk_skus contains return data (returns come from fk_monthly/fk_orders, not fk_skus). Citing FK return rate from monthly data as context for net ROAS impact is correct and encouraged. Must cite at least one specific ROAS or spend figure from the brief."
   },
   {
     "id": "q002",
