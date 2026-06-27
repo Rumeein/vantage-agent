@@ -24,8 +24,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 REPO_ROOT     = Path(__file__).parent.parent
-LOG_PATH      = Path(__file__).parent / 'eval_log.jsonl'
-ANNOT_PATH    = Path(__file__).parent / 'annotations.json'
+EVAL_DIR      = Path(__file__).parent
+LOG_PATH      = EVAL_DIR / 'eval_log.jsonl'
+ANNOT_PATH    = EVAL_DIR / 'annotations.json'
 DOCS_DIR      = REPO_ROOT / 'docs'
 OUT_HTML      = DOCS_DIR / 'eval_report.html'
 
@@ -46,20 +47,21 @@ CLASS_COLOR = {
 # ---------------------------------------------------------------------------
 
 def _load_rows() -> list:
+    """Load all rows from eval_log.jsonl and any archived eval_log_*.jsonl files."""
+    log_files = sorted(EVAL_DIR.glob('eval_log*.jsonl'))
     rows = []
-    if not LOG_PATH.exists():
-        return rows
-    for line in LOG_PATH.open(encoding='utf-8'):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            r = json.loads(line)
-        except Exception:
-            continue
-        if not r.get('vantage_model'):
-            continue
-        rows.append(r)
+    for path in log_files:
+        for line in path.open(encoding='utf-8'):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            if not r.get('vantage_model'):
+                continue
+            rows.append(r)
     return rows
 
 
