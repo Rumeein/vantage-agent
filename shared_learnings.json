@@ -1,5 +1,69 @@
 {
   "schema_version": "1.0",
   "description": "Universal and category-level learnings confirmed across multiple businesses. Loaded into every business context. Agent proposes these as untested hypotheses for new businesses until their own data confirms them.",
-  "learnings": []
+  "learnings": [
+    {
+      "id": "meesho-nqd-reranking",
+      "platform": "meesho",
+      "category": "algorithm",
+      "title": "Meesho feed re-ranking uses NQD, not return rate directly",
+      "confidence": "confirmed",
+      "source": "Meesho Engineering Blog — Quality Focused Feed Re-ranking (meesho.io/blog)",
+      "source_type": "official",
+      "added": "2026-06-27",
+      "summary": "Meesho's search and feed ranking uses a metric called NQD (Net Quality Detractor) — the percentage of 1-star and 2-star reviews out of total ratings. A catalog's final ranking score is: Final Score = LTR Score × (1 − 0.4 × predicted NQD). Higher NQD = lower score = pushed down in feed. The quality weight (α = 0.4) was finalized through A/B testing.",
+      "detail": {
+        "metric": "NQD = (1-star reviews + 2-star reviews) / total reviews. More sensitive than average rating because it isolates the dissatisfied customer segment.",
+        "formula": "Final Score = LTR_relevance_score × (1 − 0.4 × predicted_NQD)",
+        "model": "LightGBM trained on 7/14/28/56-day feature windows. Forecasts future NQD, not just current.",
+        "input_signals": [
+          "Product features",
+          "Seller features (account-level quality history)",
+          "Category features",
+          "Seller × category lifetime NQD (critical: your history in a category feeds individual catalog scores)"
+        ],
+        "outcome": "Implementation led to 1% platform-wide drop in user dissatisfaction while preserving relevance."
+      },
+      "seller_implication": "Reducing 1-star and 2-star reviews is the single most direct way to improve organic rank on Meesho. Return rate alone is not a confirmed direct input — but bad products generate both bad reviews AND returns, so the effect is correlated.",
+      "what_is_not_confirmed": "Specific NQD thresholds that trigger suppression or delisting are not published. The '15% = suppression, 26% = death line' figures circulating in seller communities have no official basis."
+    },
+    {
+      "id": "meesho-seller-category-nqd",
+      "platform": "meesho",
+      "category": "algorithm",
+      "title": "Seller's quality history in a category affects all catalogs in that category",
+      "confidence": "confirmed",
+      "source": "Meesho Engineering Blog — Quality Focused Feed Re-ranking (meesho.io/blog)",
+      "source_type": "official",
+      "added": "2026-06-27",
+      "summary": "Meesho's NQD prediction model uses 'seller × category lifetime NQD' as an input signal. This means a seller's cumulative quality history within a category is baked into the ranking score of every individual catalog in that category. A track record of bad-rated products in earrings will lower the starting score for any new earring catalog from that seller.",
+      "seller_implication": "One consistently poorly rated catalog in a category drags down the ranking potential of all other catalogs in the same category from the same account. Removing or fixing a chronically bad catalog protects the rest of the account in that category.",
+      "what_is_not_confirmed": "Whether a bad catalog in one category (e.g. earrings) spills over into a different category (e.g. bangles) — the signal is category-scoped per official documentation."
+    },
+    {
+      "id": "meesho-return-rate-ranking-community",
+      "platform": "meesho",
+      "category": "algorithm",
+      "title": "High return rate (RTO > 25%) linked to reduced visibility — community-observed, not officially confirmed",
+      "confidence": "community-observed",
+      "source": "Multiple seller community sources. No official Meesho documentation.",
+      "source_type": "community",
+      "added": "2026-06-27",
+      "summary": "Sellers with RTO rates consistently above 25% report: reduced catalog visibility in search, lower organic ranking, and restricted COD availability. This is widely repeated in Indian seller communities but Meesho has not published this as official policy. The official ranking algorithm (NQD) is rating-based, not return-rate-based — though the two are correlated (poor product quality causes both bad reviews and returns).",
+      "seller_implication": "Treat high return rate as a leading indicator of future NQD degradation. Fix the root cause (sizing, product accuracy, image mismatch) before bad reviews accumulate. Do not wait for ranking drop to happen.",
+      "what_is_not_confirmed": "The 25% threshold and COD restriction trigger are community estimates. Meesho has not published these numbers officially."
+    },
+    {
+      "id": "meesho-review-system-architecture",
+      "platform": "meesho",
+      "category": "platform",
+      "title": "Meesho review display order uses a 5-factor relevance score per review",
+      "confidence": "confirmed",
+      "source": "Meesho Tech Blog — Rating and Review System (medium.com/meesho-tech)",
+      "source_type": "official",
+      "added": "2026-06-27",
+      "summary": "Reviews shown to buyers on Meesho product pages are ranked by a relevance score (1–100) built from 5 weighted factors: Rating Score (how the rating compares to the median), Text Score (review quality), Image Score (user approval of photos), Helpful Score (helpful votes ratio), and Recency Score (exponential decay — e^(-days/10)). Recency decays fast: a review from 10 days ago has ~37% of a fresh review's recency score.",
+      "seller_implication": "Negative reviews with images and helpful votes stay prominent longer than text-only negative reviews. Getting buyers to mark positive reviews as helpful, and ensuring new positive reviews keep coming in, materially pushes bad reviews down the page."
+    }
+  ]
 }
