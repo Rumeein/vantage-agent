@@ -87,6 +87,7 @@ def _learning_card(item: dict) -> str:
     implication = item.get('seller_implication', '')
     not_conf   = item.get('what_is_not_confirmed', '')
     source     = item.get('source', '')
+    source_url = item.get('source_url', '')
     added      = item.get('added', '')
     item_id    = item.get('id', '')
 
@@ -122,7 +123,7 @@ def _learning_card(item: dict) -> str:
     {not_conf_section}
     <div class="card-footer">
       {_source_badge(source_t)}
-      <span class="source-text">{_esc(source)}</span>
+      {'<a class="source-text" href="' + _esc(source_url) + '" target="_blank" rel="noopener">' + _esc(source) + '</a>' if source_url else '<span class="source-text">' + _esc(source) + '</span>'}
       <span class="muted added">Added {_esc(added)}</span>
     </div>
   </div>
@@ -214,6 +215,8 @@ code {
   flex-wrap: wrap; background: #f6f8fa; font-size: 0.8em;
 }
 .source-text { color: #444; }
+a.source-text { color: #0969da; text-decoration: none; }
+a.source-text:hover { text-decoration: underline; }
 .muted { color: #656d76; }
 .added { margin-left: auto; }
 .site-footer {
