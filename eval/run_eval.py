@@ -120,8 +120,26 @@ def run_eval(instance_path: str, filter_categories=None, filter_ids=None,
         test_suite = [q for q in test_suite if q['category'] in filter_categories]
     if filter_ids:
         test_suite = [q for q in test_suite if q['id'] in filter_ids]
+
+    # Skip questions already answered in previous runs
+    already_answered = set()
+    if LOG_PATH.exists():
+        for line in LOG_PATH.open(encoding='utf-8'):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+                if r.get('vantage_model'):
+                    already_answered.add(r['id'])
+            except Exception:
+                pass
+    skipped = [q for q in test_suite if q['id'] in already_answered]
+    test_suite = [q for q in test_suite if q['id'] not in already_answered]
+    if skipped:
+        print(f"Skipping {len(skipped)} already-answered questions: {[q['id'] for q in skipped]}")
     if not test_suite:
-        print("No questions matched filters.")
+        print("All questions already answered. Nothing to run.")
         return
 
     run_id = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
