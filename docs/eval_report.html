@@ -110,13 +110,32 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   font-size: 0.82em; border-top: 1px solid #d0d7de; margin-top: 28px;
   background: #f6f8fa;
 }
+/* Table scroll wrapper (prevents overflow on narrow screens) */
+.answer .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Mobile */
+@media (max-width: 600px) {
+  .site-header { flex-wrap: wrap; padding: 12px 16px; gap: 6px; }
+  .site-header .tagline { margin-left: 0; font-size: 0.78em; }
+  .main { padding: 16px 12px; }
+  .stat { min-width: 0; flex: 1 1 calc(50% - 6px); padding: 10px 12px; }
+  .stat b { font-size: 1.3em; }
+  details.run > summary { padding: 12px 12px; font-size: 0.93em; flex-wrap: wrap; }
+  .run-meta { width: 100%; margin-left: 22px; }
+  details.q > summary { padding: 10px 10px; font-size: 0.88em; flex-wrap: wrap; }
+  .qtext { width: 100%; margin-left: 22px; order: 3; }
+  .badge { order: 4; margin-left: 22px; margin-top: 2px; }
+  .answer { padding: 10px 12px; font-size: 0.84em; max-height: 260px; }
+  .verdict, .annot { padding: 8px 12px; }
+  .run-body { padding: 10px 8px; }
+  .site-footer { padding: 16px; }
+}
 </style>
 </head>
 <body>
 
 <header class="site-header">
   <h1>Vantage &mdash; Eval Report</h1>
-  <span class="tagline">Generated 2026-06-27 08:12 UTC &nbsp;·&nbsp; Spend &#8377;152 of &#8377;200 &nbsp;·&nbsp; Latest result per question</span>
+  <span class="tagline">Generated 2026-06-27 08:13 UTC &nbsp;·&nbsp; Spend &#8377;152 of &#8377;200 &nbsp;·&nbsp; Latest result per question</span>
 </header>
 
 <main class="main">
@@ -143,7 +162,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   </summary>
   <div class="answer"><p><strong>Flipkart ads are running just above break-even — recent per-SKU ROAS spread from 1.34x to 4.67x, with most top earners below the 3x acceptable floor.</strong></p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>Campaign ROAS (last 7d range)</td><td>0.97x → 7.11x, avg ~3.2x</td><td>Highly volatile; 3 of 7 days below 2x → spend wasted on low-conversion days</td></tr>
@@ -153,7 +172,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <tr><td>dj5b per-SKU ROAS</td><td>1.34x (spend ₹765, rev ₹1025)</td><td>Below 3x despite being #1 lifetime ad earner → CTR 0.09% is the leak</td></tr>
 <tr><td>ogdj5 per-SKU ROAS</td><td>4.67x (spend ₹130, rev ₹605)</td><td>Best efficiency but tiny spend → under-funded winner</td></tr>
 <tr><td>Top earner CTR (dj5b)</td><td>0.09%</td><td>Far below category norm → impressions wasted, ad rank suppressed</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p><strong>Mechanism:</strong> Flipkart's ad auction multiplies your bid by Listing Quality Score (LQS), and CTR is a core LQS input. dj5b has 1.33M impressions at 0.09% CTR — the algorithm reads this as a low-relevance listing and keeps raising your effective cost-per-click to maintain placement, which is exactly why your highest-volume SKU sits at 1.34x ROAS while a low-spend SKU like ogdj5 hits 4.67x. ROAS below 3x in jewelry is not a bidding problem at this CTR level; it is a conversion/listing problem. Spending more on dj5b without fixing the listing compounds the loss — you pay more per click to send traffic to a page that converts poorly. Note: per-SKU FK total revenue, return rate, and stock are not in the data, so this read is ad-attributed only.</p>
 <div class="gap"></div>
@@ -187,7 +206,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <div class="gap"></div>
 <p><strong>Headline:</strong> Meesho's settled return rate was 8.8% in May (the last complete month); June shows ₹0/0 orders because settlement hasn't posted yet — so there is no reliable current-month figure.</p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>May 2026 return rate (settled)</td><td>8.8% (29 returns / 331 orders)</td><td>Well below Meesho's 15% suppression threshold → account health is safe</td></tr>
@@ -195,7 +214,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <tr><td>Jun 2026 return rate</td><td>Not available (0 orders settled)</td><td>Settlement lag — current month always incomplete; do not cite as 0%</td></tr>
 <tr><td>Worst catalog: dj14-me</td><td>22.1% (127 orders)</td><td>Above 15% → drags overall account, candidate for catalog fix</td></tr>
 <tr><td>Worst catalog: dj11-me</td><td>18.6% (280 orders)</td><td>Above 15% on high volume → highest absolute return cost</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p><strong>Mechanism:</strong> Meesho reports <code>me_monthly.return_rate</code> on <em>settled</em> orders only, which means the current month (June) is structurally incomplete — returns post days-to-weeks after delivery, so a fresh month reads near-zero until settlement catches up. The honest "current rate" is the last complete month: 8.8% in May. Account-wide you are healthy (below the 15% line where Meesho's algorithm begins deprioritizing catalogs in search), but the account number hides catalog-level risk. dj14-me (22.1%) and dj11-me (18.6%) are both above threshold; on Meesho a single bad catalog above 15% can suppress organic ranking across the account, and your top return reason — "quality or performance not good" at 41.5% — points to a description-vs-reality gap, not a sizing problem.</p>
 <div class="gap"></div>
@@ -223,7 +242,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   </summary>
   <div class="answer"><p>Headline: No — a Flipkart brand store is a Stage 3 tactic, and your real bleed right now is a Flipkart return rate that hit 64.7% in April and is still 38% in June.</p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>FK return rate (Apr)</td><td>64.7%</td><td>Catastrophic — over 6 in 10 orders came back, destroying contribution margin</td></tr>
@@ -231,7 +250,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <tr><td>Business stage</td><td>Stage 2 (few lakhs/mo)</td><td>Brand stores belong to Stage 3 (₹25L–₹1Cr); spend here burns cash</td></tr>
 <tr><td>Best FK ad SKU ROAS</td><td>ogdj5 4.67x, ogdj6 3.79x, dj11b 3.74x</td><td>Only a handful clear 3x — ad money has better homes than a storefront</td></tr>
 <tr><td>Weak FK ad SKUs</td><td>dj5b 1.34x, dj7b 1.60x</td><td>Below 2x → listing/conversion problem, not a storefront problem</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p>Mechanism: A Flipkart brand store is a discovery and brand-recall asset — it only pays off when you already have steady branded search demand and a catalog that converts cleanly. At Stage 2 you have neither the branded traffic volume nor the review depth to feed it, so the store sits empty while costing setup effort and diverting attention. More importantly, Flipkart's LQS is your ad-auction multiplier, and a 38–64% return rate signals poor listing-to-product match to the algorithm. High returns drag LQS down, which raises your effective ad cost and suppresses organic rank — every rupee you'd put behind a brand store gets taxed by the underlying return problem first. A storefront amplifies the funnel you already have; right now the bottom of that funnel is leaking more than a third of revenue back out as returns. Fix the leak before building a bigger front door.</p>
 <div class="gap"></div>
@@ -250,13 +269,13 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   </summary>
   <div class="answer"><p><strong>DJ-6 on Meesho is in good shape — 12.7% return rate, below the 15% suppression line — so the win here is precision, not panic.</strong></p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>dj6-me return rate</td><td>12.7% (861 orders)</td><td>Below 15% threshold → catalog stays in good algorithmic standing; safe to optimize, not rescue</td></tr>
 <tr><td>Top return reason (account-wide)</td><td>"Quality or performance not good" 41.5%</td><td>Largest single driver → expectation gap between images/description and product-in-hand</td></tr>
 <tr><td>Existing DJ-6 experiment (exp_20260620_001)</td><td>Images + size chart bundled together</td><td>Two variables in one test → cannot isolate which lever moved the rate; results will be uninterpretable</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p><strong>Mechanism:</strong> Meesho's return rate is the dominant account-health signal — above 15% it throttles catalog visibility in search and filtered results, which compounds because lower visibility means fewer new orders to dilute the return ratio, dragging the rate further up. DJ-6 at 12.7% has buffer, so the goal is to protect that buffer by attacking the specific cause. The #1 return reason on this account is "quality/performance not good" at 41.5% — in imitation jewellery this is almost always an expectation gap, not a defect: the product looks more premium or larger in the listing than it does in hand. The fix is making the listing show the product <em>honestly at true scale and finish</em>, which reduces the gap that triggers returns. Your current active DJ-6 experiment changes images AND size charts at once — that violates single-variable testing, so even if the rate drops you won't know what to replicate on dj5-me, dj1-me, and the others.</p>
 <div class="gap"></div>
@@ -284,7 +303,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   </summary>
   <div class="answer"><p>Headline: I cannot answer profit — neither platform's data in context contains cost of goods, fees, or net margin, so any profit figure would be fabricated.</p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>FK GMV May 2026</td><td>₹1.2L</td><td>Gross merchandise value only — not revenue net of returns or fees</td></tr>
@@ -293,7 +312,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <tr><td>Meesho return rate May 2026</td><td>8.8%</td><td>Within healthy range → less margin leakage than FK</td></tr>
 <tr><td>FK ad spend (per-SKU recent)</td><td>partial only (₹4.5K across 6 SKUs shown)</td><td>Not a complete monthly spend figure — cannot net against revenue</td></tr>
 <tr><td>COGS / product cost</td><td>NOT IN CONTEXT</td><td>Profit is mathematically impossible without it</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p>Mechanism: Profit = settled revenue − COGS − ad spend − platform fees − return/logistics costs. Of these, your context contains only partial gross figures. GMV is the top-line value of orders placed, but Flipkart's 53.8% May return rate means roughly half that GMV reversed — and each return still carries forward + reverse shipping cost, so returns are net-negative, not just zero. <code>me_monthly</code> and <code>fk_monthly</code> give settled order counts and GMV but no cost columns. There is no COGS field anywhere in the Meesho or Flipkart schema, and Amazon is not integrated at all. Back-calculating profit from a margin assumption would violate the rule that I only state numbers present in your data — I won't do it.</p>
 <div class="gap"></div>
@@ -312,7 +331,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   </summary>
   <div class="answer"><p><strong>Flipkart's return rate is the single most important fix — it has been running at catastrophic levels and is bleeding your margin on every order.</strong></p>
 <div class="gap"></div>
-<table>
+<div class="tbl-wrap"><table>
 <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
 <tr><td>---</td><td>---</td><td>---</td></tr>
 <tr><td>FK return rate, Apr 2026</td><td>64.7%</td><td>Catastrophic — nearly 2 of 3 orders came back; forward + reverse shipping + handling all lost</td></tr>
@@ -320,7 +339,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 <tr><td>FK return rate, Jun 2026</td><td>38.0%</td><td>Improving but 2.5x above the 15% danger line — still destroying contribution margin</td></tr>
 <tr><td>Meesho return rate, May 2026</td><td>8.8%</td><td>Healthy — under threshold; proves your product can sell clean when listing matches reality</td></tr>
 <tr><td>Top FK return reason</td><td>"Quality/performance not good" 41.5%</td><td>Listing oversells vs. actual product → buyer disappointment → return + bad review</td></tr>
-</table>
+</table></div>
 <div class="gap"></div>
 <p><strong>Mechanism:</strong> On Flipkart, a return costs you twice — you pay forward logistics to ship it and reverse logistics to get it back, plus the unit often returns damaged and unsellable. At a 38–65% return rate, you are shipping roughly half your inventory round-trip for zero revenue, which can turn a positive-ROAS campaign into a net loss even when the ad math looks fine. Worse, the dominant return reason (41.5% "quality not good") is a <em>perception gap</em> — the listing images and description set an expectation the physical product does not meet. This compounds: each return seeds a low rating, low ratings drop your LQS, a lower LQS raises your ad auction cost, and higher ad cost on returned units accelerates the bleed. The contrast with Meesho (8.8%) is the proof — same products, far lower returns, meaning the problem is Flipkart listing accuracy, not the jewellery itself.</p>
 <div class="gap"></div>
@@ -1234,7 +1253,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </main>
 
 <footer class="site-footer">
-  Vantage Eval &nbsp;·&nbsp; 2026-06-27 08:12 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
+  Vantage Eval &nbsp;·&nbsp; 2026-06-27 08:13 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
 </footer>
 
 </body>
