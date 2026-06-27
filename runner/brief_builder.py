@@ -230,8 +230,8 @@ def _health_section(run_log: dict, coverage_gaps: list = None) -> list:
 
 def _platform_summary(summary: dict, me_ads_daily=None,
                       fk_ads_sku=None, fk_ads_daily=None) -> list:
-    """Cross-platform profit summary — shown before individual platform sections.
-    Answers: where is the business healthier? where does the next rupee earn more?
+    """Cross-platform business health snapshot — shown before individual platform sections.
+    Gives Vantage a side-by-side view before it reads per-platform detail.
     """
     lines = ["=== CROSS-PLATFORM SUMMARY ==="]
 
@@ -241,8 +241,9 @@ def _platform_summary(summary: dict, me_ads_daily=None,
 
     fk_gmv = _to_float((fk_months[0].get('gmv') or fk_months[0].get('total_gmv', 0)) if fk_months else 0) or 0
     me_gmv = _to_float((me_months[0].get('gmv') or me_months[0].get('total_gmv', 0)) if me_months else 0) or 0
-    fk_ret = _to_float(fk_months[0].get('return_rate', 0)) if fk_months else None
-    me_ret = _to_float(me_months[0].get('return_rate', 0)) if me_months else None
+    # Use None default (not 0) so missing field shows '?' not '0.0%'
+    fk_ret = _to_float(fk_months[0].get('return_rate')) if fk_months else None
+    me_ret = _to_float(me_months[0].get('return_rate')) if me_months else None
     fk_mon = fk_months[0].get('month', '?') if fk_months else '?'
     me_mon = me_months[0].get('month', '?') if me_months else '?'
 
@@ -252,14 +253,27 @@ def _platform_summary(summary: dict, me_ads_daily=None,
     lines.append(f"  Flipkart  ({fk_mon}): GMV ₹{_fmt_lakh(fk_gmv)}, return rate {fk_ret_str}")
     lines.append(f"  Meesho    ({me_mon}): GMV ₹{_fmt_lakh(me_gmv)}, return rate {me_ret_str}")
 
-    # Ad ROI comparison
+    # Ad efficiency: FK — use pre-computed roas per SKU to avoid double-counting multi-row SKUs.
+    # Fallback to fk_ads_daily campaign rows if fk_ads_sku is absent.
     fk_roas = me_roi = None
     if fk_ads_sku:
-        rows = fk_ads_sku.get('fk_ads_sku', [])
+        rows = [r for r in fk_ads_sku.get('fk_ads_sku', []) if _to_float(r.get('roas'))]
+        if rows:
+            # Weight average ROAS by spend so big spenders dominate the summary
+            total_spend = sum(_to_float(r.get('ad_spend', 0)) or 0 for r in rows)
+            total_rev   = sum((_to_float(r.get('ad_spend', 0)) or 0) * (_to_float(r.get('roas', 0)) or 0)
+                              for r in rows)
+            if total_spend:
+                fk_roas = total_rev / total_spend
+    if fk_roas is None and fk_ads_daily:
+        # Fallback: sum campaign daily rows
+        rows = fk_ads_daily.get('fk_ads_daily', [])
         total_spend = sum(_to_float(r.get('ad_spend', 0)) or 0 for r in rows)
         total_rev   = sum(_to_float(r.get('revenue', 0)) or 0 for r in rows)
         if total_spend:
             fk_roas = total_rev / total_spend
+
+    # Meesho ROI — aggregate from me_ads_daily (me_ads_catalog has no roi column)
     if me_ads_daily:
         rows = me_ads_daily.get('me_ads_daily', [])
         total_spend = sum(_to_float(r.get('spend', 0)) or 0 for r in rows)
@@ -271,18 +285,19 @@ def _platform_summary(summary: dict, me_ads_daily=None,
         lines.append("Ad efficiency (recent period):")
         if fk_roas is not None:
             lines.append(f"  Flipkart ROAS: {fk_roas:.2f}x")
+        else:
+            lines.append(f"  Flipkart ROAS: ? (no ad spend data)")
         if me_roi is not None:
             lines.append(f"  Meesho ROI:    {me_roi:.2f}x")
-        if fk_roas is not None and me_roi is not None:
-            better = 'Flipkart' if fk_roas >= me_roi else 'Meesho'
-            lines.append(f"  Better ad return: {better} ({max(fk_roas, me_roi):.2f}x vs {min(fk_roas, me_roi):.2f}x)")
+        else:
+            lines.append(f"  Meesho ROI:    ? (no ad spend data)")
 
-    # Health flag
+    # Health flags — use module constants for consistency with platform sections
     flags = []
-    if fk_ret is not None and fk_ret > 40:
-        flags.append(f"FK return rate {fk_ret:.1f}% — critical")
-    if me_ret is not None and me_ret > 15:
-        flags.append(f"Meesho return rate {me_ret:.1f}% — above suppression threshold")
+    if fk_ret is not None and fk_ret > FK_RETURN_ALARM:
+        flags.append(f"FK return rate {fk_ret:.1f}% — above {FK_RETURN_ALARM:.0f}% alarm threshold")
+    if me_ret is not None and me_ret > ME_RETURN_WATCH:
+        flags.append(f"Meesho return rate {me_ret:.1f}% — above {ME_RETURN_WATCH:.0f}% suppression threshold")
     if flags:
         lines.append("Flags:")
         for f in flags:

@@ -33,13 +33,13 @@
     "id": "q006",
     "category": "platform_data_reading",
     "question": "What is the return rate for each of our Meesho catalogs?",
-    "expected": "RUBRIC: Per-catalog return rate EXISTS on Meesho in me_skus (unlike Flipkart which only has overall return rate). Must answer using actual per-catalog data from me_skus. Must NOT refuse or say this data is unavailable — that is a fail. Must cite specific catalog names and their return rates."
+    "expected": "RUBRIC: Per-catalog return rate EXISTS on Meesho in me_skus (unlike Flipkart which only has overall return rate). Must answer using actual per-catalog data from me_skus when that data is present in the brief. Must cite specific catalog names and their return rates. Exception: if the brief shows no per-catalog return rate values (all blank in the data), a clean refusal with explanation of what IS available is acceptable — do not penalise correct data-gap acknowledgement."
   },
   {
     "id": "q007",
     "category": "platform_data_reading",
     "question": "Between Flipkart and Meesho, where is our ad spend generating better returns right now?",
-    "expected": "RUBRIC: Must compare both platforms using actual data. FK ROAS is available from fk_ads_sku (or fk_ads_daily). Meesho ROI is available from me_ads_daily (overall) or me_ads_catalog (per catalog). Must cite specific ROAS and ROI figures from the brief for both platforms. Must give a clear data-backed answer on which is better — not a hedge. Must not answer by analysing only one platform."
+    "expected": "RUBRIC: Must compare both platforms using actual data. FK ROAS is available from fk_ads_sku (or fk_ads_daily). Meesho ROI is available from me_ads_daily when Meesho ads are running. Must cite whichever figures are present in the brief — if one platform has no active ad spend, correctly stating that is acceptable (do not penalise a correct data gap acknowledgement). Must give a clear data-backed answer, not a hedge. Must not analyse only one platform when data for both exists."
   },
   {
     "id": "q008",
