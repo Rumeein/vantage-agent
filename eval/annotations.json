@@ -19,5 +19,12 @@
     "round": 2,
     "classification": "STALE RUBRIC",
     "note": "Rubric required exact column names 'ad_attributed_revenue_rs' and 'units_sold_via_ads'. Brief now shows ROAS + spend + revenue directly — Vantage cited these correctly (e.g. '₹1484 spend → ₹5545'). Rubric also flagged 'return counts for fk_skus' but Vantage cited FK return rate from fk_monthly as context for net ROAS impact — correct and encouraged. Vantage answer was excellent. Rubric updated to be intent-based."
+  },
+  {
+    "id": "q001",
+    "date": "2026-06-27",
+    "round": 1,
+    "classification": "JUDGE ERROR",
+    "note": "Judge applied stage_calibration logic to an fk_skus_interpretation question. q001 asks what FK ad performance looks like — Vantage read the data correctly and cited real figures. The budget-shift experiment (1.34x→4.67x SKU) is efficient spend reallocation, not a Stage 3 scale-up tactic. Wrong rubric lens applied."
   }
 ]
