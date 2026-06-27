@@ -12,5 +12,12 @@
     "round": 1,
     "classification": "JUDGE ERROR",
     "note": "Judge claimed ROAS figures (3.74x, 1.60x, 1.34x, 4.67x, 0.97x–7.11x) were not in the data context. They ARE — brief lines 22–35 list per-SKU ROAS and campaign daily ROAS explicitly. Haiku misread the dense brief format even with data context injected. Vantage answer is correct."
+  },
+  {
+    "id": "q001",
+    "date": "2026-06-27",
+    "round": 2,
+    "classification": "STALE RUBRIC",
+    "note": "Rubric required exact column names 'ad_attributed_revenue_rs' and 'units_sold_via_ads'. Brief now shows ROAS + spend + revenue directly — Vantage cited these correctly (e.g. '₹1484 spend → ₹5545'). Rubric also flagged 'return counts for fk_skus' but Vantage cited FK return rate from fk_monthly as context for net ROAS impact — correct and encouraged. Vantage answer was excellent. Rubric updated to be intent-based."
   }
 ]

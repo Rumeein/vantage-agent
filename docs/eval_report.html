@@ -135,7 +135,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 
 <header class="site-header">
   <h1>Vantage &mdash; Eval Report</h1>
-  <span class="tagline">Generated 2026-06-27 08:13 UTC &nbsp;·&nbsp; Spend &#8377;152 of &#8377;200 &nbsp;·&nbsp; Latest result per question</span>
+  <span class="tagline">Generated 2026-06-27 09:08 UTC &nbsp;·&nbsp; Spend &#8377;152 of &#8377;200 &nbsp;·&nbsp; Latest result per question</span>
 </header>
 
 <main class="main">
@@ -151,7 +151,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <summary>
     <span class="arrow">&#9654;</span>
     <span class="run-label">2026-06-27 · Round 1</span>
-    <span class="run-meta">5/6 pass · 1 fail <span class="muted">· claude-opus-4-8</span></span>
+    <span class="run-meta">10/12 pass · 2 fail <span class="muted">· claude-opus-4-8</span></span>
   </summary>
   <div class="run-body"><details class="q">
   <summary>
@@ -198,6 +198,49 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </details><details class="q">
   <summary>
     <span class="arrow">&#9654;</span>
+    <span class="qid">q001</span>
+    <span class="qtext">What does our Flipkart ad performance look like overall?</span>
+    <span class="badge" style="color:#cf222e;background:#ffebe9">fail</span>
+  </summary>
+  <div class="answer"><p><strong>Flipkart ads are running below the 3x acceptable minimum on most spend — only your two Goddess SKUs clear target ROAS.</strong></p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>Campaign daily spend</td><td>~₹372/day (last 7d)</td><td>Small, controlled spend → safe to optimize without big risk</td></tr>
+<tr><td>Campaign ROAS (7d range)</td><td>0.97x – 7.11x, highly volatile</td><td>Below 3x on most days → ads barely break even after returns; not yet scalable</td></tr>
+<tr><td>dj11b ROAS</td><td>3.74x (₹1484 spend → ₹5545)</td><td>Above 3x → only high-volume SKU clearing the bar; scale candidate</td></tr>
+<tr><td>ogdj5 ROAS</td><td>4.67x (₹130 spend → ₹605)</td><td>Best efficiency but tiny spend → under-funded winner</td></tr>
+<tr><td>ogdj6 ROAS</td><td>3.79x (₹490 spend → ₹1858)</td><td>Above target → under-funded winner</td></tr>
+<tr><td>dj7b ROAS</td><td>1.60x (₹1124 spend → ₹1802)</td><td>Below 2x → bleeding spend; listing issue, not bid issue</td></tr>
+<tr><td>dj5b ROAS</td><td>1.34x (₹765 spend → ₹1025)</td><td>Below 2x → your top lifetime earner is now ad-inefficient</td></tr>
+<tr><td>dj14b CTR</td><td>5.86% (33443 impressions)</td><td>Far above the ~0.1–0.7% pack → strong creative; underexposed</td></tr>
+<tr><td>FK overall return rate (Jun)</td><td>38.0%</td><td>Above 15% → silently destroys real ROAS; a 1.6x ad converts to a loss after returns</td></tr>
+</table></div>
+<div class="gap"></div>
+<p><strong>Mechanism.</strong> Flipkart's ad auction is gated by Listing Quality Score — a high-LQS listing wins impressions at a lower bid, so when a SKU like dj5b drops to 1.34x ROAS, the problem is almost always conversion on the listing, not the bid. Pouring more budget into a sub-2x SKU just buys more clicks at the same poor conversion. Worse, your reported ROAS is gross of returns: at a 38% FK return rate, a 1.6x gross ROAS becomes roughly 1.0x net — you're paying to ship product that comes back. The two Goddess SKUs (ogdj5 4.67x, ogdj6 3.79x) are the inverse: high efficiency starved of budget, leaving organic rank and volume on the table. dj14b's 5.86% CTR signals strong creative that simply isn't being funded enough to convert into scale.</p>
+<div class="gap"></div>
+<p><strong>Action.</strong> Don't raise budget on dj5b or dj7b — they're below 2x, which is a listing/conversion problem. Instead, run this single-variable budget-shift experiment:</p>
+<div class="gap"></div>
+<ul>
+  <li><strong>Experiment (ads):</strong> <em>If we shift ad budget from dj5b (1.34x) to ogdj5 (4.67x) on Flipkart, then blended campaign ROAS will increase from 1.34x to ~3.5x over 14 days, because spend moves to a SKU already converting above target at the same LQS tier.</em></li>
+  <li><strong>Change required:</strong> Reduce dj5b daily ad budget by 50%; reallocate that exact rupee amount to ogdj5.</li>
+  <li><strong>Baseline:</strong> dj5b ROAS 1.34x, ogdj5 ROAS 4.67x (measured 2026-06-25).</li>
+  <li><strong>Evaluate after:</strong> 14 days.</li>
+</ul>
+<div class="gap"></div>
+<p>Note (alert first): existing experiment exp_20260620_002 proposes a 20% budget <em>increase</em> on dj5b — that contradicts the data (dj5b is at 1.34x). Pause that experiment before it runs.</p></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Answer violates rubric by mentioning return counts for fk_skus columns and fails to reference ad_attributed_revenue_rs or units_sold_via_ads as primary metrics in the summary.</div>
+  </div>
+  <div class="annot">
+  <div class="panel-label">JUDGE-THE-JUDGE <span class="badge" style="color:#9a6700;background:#fff8c5">JUDGE ERROR</span></div>
+  <div class="annot-note">Judge claimed ROAS figures (3.74x, 1.60x, 1.34x, 4.67x, 0.97x–7.11x) were not in the data context. They ARE — brief lines 22–35 list per-SKU ROAS and campaign daily ROAS explicitly. Haiku misread the dense brief format even with data context injected. Vantage answer is correct.</div>
+</div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
     <span class="qid">q009</span>
     <span class="qtext">What is our current Meesho return rate?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
@@ -236,6 +279,32 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </details><details class="q">
   <summary>
     <span class="arrow">&#9654;</span>
+    <span class="qid">q009</span>
+    <span class="qtext">What is our current Meesho return rate?</span>
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
+  </summary>
+  <div class="answer"><p>Headline: Meesho's most recent <em>settled</em> return rate is 8.8% (May 2026) — June is not yet usable due to settlement lag showing 0 orders.</p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>Meesho return rate — May 2026</td><td>8.8% (29 returns / 331 orders)</td><td>Below the 15% suppression threshold → account health safe, organic ranking protected</td></tr>
+<tr><td>Meesho return rate — Apr 2026</td><td>12.5% (133 / 1066)</td><td>Still safe, but trending higher in higher-volume month → watch</td></tr>
+<tr><td>Meesho return rate — Jun 2026</td><td>Not available (0 settled orders)</td><td>Settlement lag — current month always incomplete, do not cite as real</td></tr>
+<tr><td>Top return reason</td><td>"Quality or performance not good" — 41.5%</td><td>Dominant driver → image/description accuracy is the lever, not sizing</td></tr>
+</table></div>
+<div class="gap"></div>
+<p>Mechanism: Meesho computes return rate on <em>delivered and settled</em> orders, and settlement lags delivery by roughly 2–3 weeks. That is why June reads 0 orders / 0 returns — those orders are in transit or not yet financially closed, so the figure is structurally meaningless until the month matures. Your reliable current number is the last fully-settled month: 8.8% in May. At the catalog level, Meesho's algorithm suppresses listings once return rate crosses 15% — it deprioritizes them in search and feed, which compounds because lower visibility means fewer orders to dilute the returns, pushing the rate higher still. Your account-wide rate is comfortably under that line, but four catalogs already sit above 15% (dj14-me at 22.1%, dj11-me 18.6%, dj1-me 17.4%, dj7-me 14.3% borderline), and a single high-volume catalog crossing the threshold can drag overall account health down. The 41.5% "quality not good" reason signals the buyer's actual product is undershooting what your images promise — an accuracy gap, not a sizing gap.</p>
+<div class="gap"></div>
+<p>Action: Treat 8.8% (May) as your live number and report it as such. Separately, prioritize dj14-me (22.1%, 127 orders) — it is your highest-volume catalog above the suppression line and is the one most likely to pull account health down next.</p></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Answer correctly cites 8.8% (May 2026) from me_monthly data, contextualizes against 15% suppression threshold, explains settlement lag, identifies at-risk catalogs, and provides actionable prioritization.</div>
+  </div>
+  <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
     <span class="qid">q015</span>
     <span class="qtext">Should we open a brand store on Flipkart?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
@@ -258,6 +327,33 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <div class="verdict">
     <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
     <div class="verdict-text">Answer correctly recommends NO to brand store (Stage 3 tactic for Stage 2 business), cites accurate data (FK return rates 64.7% Apr, 38% Jun; ROAS figures; stage rationale), and proposes well-formed experiment with hypothesis, baseline, single variable, and 30-day evaluation window.</div>
+  </div>
+  <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
+    <span class="qid">q015</span>
+    <span class="qtext">Should we open a brand store on Flipkart?</span>
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
+  </summary>
+  <div class="answer"><p><strong>No — a Flipkart brand store is a Stage 3 tactic and would burn money at your current stage and listing health.</strong></p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>Business stage</td><td>Stage 2 (few lakhs/month)</td><td>Brand stores pay off at Stage 3 (₹25L+/mo) with brand recognition — below that, traffic is too thin to justify the build/maintenance</td></tr>
+<tr><td>FK return rate (2026-06)</td><td>38.0%</td><td>Far above 15% threshold → Flipkart deprioritizes listings in search; a brand store funnels traffic into listings that lose money on returns</td></tr>
+<tr><td>FK return rate (2026-04)</td><td>64.7%</td><td>Catastrophic — fixing this is worth far more than any storefront</td></tr>
+<tr><td>Best FK ad ROAS (recent)</td><td>dj11b 3.74x, most SKUs 1.3–2.5x</td><td>Below the 3x acceptable floor on most SKUs → ad efficiency is the live problem, not brand presence</td></tr>
+<tr><td>FK ad CTR (top earner dj5b)</td><td>0.09%</td><td>Discovery/creative weakness at the listing level — a brand store does not fix this</td></tr>
+</table></div>
+<div class="gap"></div>
+<p><strong>Mechanism:</strong> A Flipkart brand store is a curated multi-product storefront whose entire value is capturing branded search demand ("Rumee Jewellery") and lifting cross-sell among customers who already know you. At Stage 2 with tier 2/3 price-sensitive buyers, almost all your traffic is non-branded category search ("jhumka for women", "jhumka gold") — those shoppers never reach a brand store; they land directly on individual listings via ad or organic placement. Meanwhile your real leak is downstream: a 38% return rate means more than 1 in 3 FK orders reverses, and Flipkart's algorithm reads high returns as a poor-listing signal and suppresses your rank in exactly that category search you depend on. Compounding effect: spend energy on a storefront and you still lose money on every returned unit <em>and</em> keep decaying in search. The leverage is to fix returns and lift LQS/ROAS first — that raises every listing simultaneously, which is what a brand store would have tried (and failed) to do.</p>
+<div class="gap"></div>
+<p><strong>Action:</strong> Do not open a brand store. Run this experiment instead — <em>If we add a size chart + correct color-accurate images to dj14-me (return rate 22.1%, top return reason "quality/performance not good" at 41.5%), then its return rate drops from 22.1% to under 15% within 30 days because accurate expectation-setting removes the dominant return trigger.</em> Baseline: dj14-me return rate 22.1%, measured 2026-06-27. Single variable: images/size-chart only. Evaluate after 30 days. Revisit the brand store question only once FK return rate is under 15% and you cross Stage 3.</p></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Vantage correctly recommends NO to Flipkart brand store, cites Stage 2 as incompatible with Stage 3/4 tactic, provides sound reasoning (38% return rate, low ROAS, category search dominance), all cited figures verified in DATA CONTEXT, and proposes properly formatted experiment (hypothesis + baseline + evaluate_after_days).</div>
   </div>
   <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
 </details><details class="q">
@@ -297,6 +393,40 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </details><details class="q">
   <summary>
     <span class="arrow">&#9654;</span>
+    <span class="qid">q023</span>
+    <span class="qtext">Suggest an experiment to reduce our Meesho return rate for DJ-6.</span>
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
+  </summary>
+  <div class="answer"><p><strong>DJ-6 on Meesho returns at 12.7% — under the 15% suppression line, but 41.5% of all returns are quality complaints, so the lever here is image/description honesty, not size.</strong></p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>dj6-me return rate</td><td>12.7% (861 orders)</td><td>Below 15% suppression threshold → catalog still ranks, but eroding margin on every return</td></tr>
+<tr><td>Top account return reason</td><td>"Quality/performance not good" 41.5%</td><td>Expectation gap between images and product → fixable with honest visuals, not restocking</td></tr>
+<tr><td>Active experiment exp_20260620_001 (DJ-6)</td><td>return_rate 12.46 → 12.00</td><td>Already testing lifestyle images + size chart together — two variables, so result is uninterpretable</td></tr>
+</table></div>
+<div class="gap"></div>
+<p><strong>Mechanism:</strong> Meesho's #1 return driver in jewelry is the gap between the catalog image and the product the buyer unboxes — when the photo oversells shine, plating, or stone clarity, the buyer marks "quality not good" and returns. That return both reverses the GMV and feeds Meesho's account health signal; sustained returns above 15% trigger search deprioritization, so a catalog drifting up from 12.7% is one bad batch away from algorithmic suppression. The existing DJ-6 experiment bundles a size chart AND lifestyle images into one change, meaning if the rate drops you won't know which fix worked — and a size chart does little for a "quality" complaint anyway. Isolating the image variable is what produces a replicable learning for the other 54 catalogs.</p>
+<div class="gap"></div>
+<p><strong>Experiment:</strong></p>
+<ul>
+  <li><strong>Hypothesis:</strong> If we replace the DJ-6 Meesho main image with an unedited, true-color shot of the actual shipped product (no brightness/shine boosting), then dj6-me return rate will decrease from 12.7% to ~10% because the buyer's unboxed product matches expectation, cutting "quality not good" returns.</li>
+  <li><strong>Change required (single variable):</strong> Swap only the primary catalog image to an honest, true-color product photo. Do not touch description, size chart, or price.</li>
+  <li><strong>Baseline:</strong> <code>return_rate: 12.7%</code> (dj6-me, measured_on 2026-06-27)</li>
+  <li><strong>evaluate_after_days:</strong> 30</li>
+  <li><strong>category:</strong> image</li>
+</ul>
+<div class="gap"></div>
+<p>Note: this conflicts with the running 2-variable DJ-6 experiment — pause that one and run this isolated image test instead, so the result is actually usable.</p></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Answer includes all required rubric elements: (1) If/then/because hypothesis in correct format, (2) specific baseline metric (12.7% return_rate for dj6-me measured_on 2026-06-27), (3) evaluate_after_days set to 30, (4) single variable change only (swap primary image). All cited figures (12.7%, 41.5%, 15% suppression line) are verified in data context.</div>
+  </div>
+  <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
     <span class="qid">q031</span>
     <span class="qtext">How much profit did we make last month?</span>
     <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
@@ -320,6 +450,34 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <div class="verdict">
     <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
     <div class="verdict-text">Vantage correctly refused to calculate profit, properly cited all figures from context (₹1.2L FK GMV May, 53.8% return rate, ₹69.4K Meesho GMV, 8.8% return rate, ₹4.5K ad spend sample), explained why profit is impossible without COGS/fees data, and requested necessary inputs to proceed.</div>
+  </div>
+  <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
+    <span class="qid">q031</span>
+    <span class="qtext">How much profit did we make last month?</span>
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
+  </summary>
+  <div class="answer"><p><strong>Profit cannot be calculated — Vantage has no cost, COGS, or net-margin data in context; only revenue/GMV figures are available.</strong></p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>Meesho GMV (May 2026)</td><td>₹69.4K</td><td>Gross merchandise value, not profit — excludes product cost, packaging, ad spend, returns deductions</td></tr>
+<tr><td>Flipkart GMV (May 2026)</td><td>₹1.2L</td><td>Gross settled revenue, not profit — settlement payout before COGS and ad costs</td></tr>
+<tr><td>FK return rate (May 2026)</td><td>53.8%</td><td>Over half of FK orders returned → massive margin erosion not visible in GMV</td></tr>
+<tr><td>Meesho return rate (May 2026)</td><td>8.8%</td><td>Within healthy range, but return-linked costs still unaccounted</td></tr>
+<tr><td>Product cost / COGS</td><td>Not in context</td><td>Required for profit — unavailable</td></tr>
+<tr><td>Total ad spend (cross-platform)</td><td>Not aggregated in context</td><td>Per-SKU FK/Meesho ad spend exists in fragments, but no monthly total</td></tr>
+</table></div>
+<div class="gap"></div>
+<p><strong>Why I cannot give you a profit number:</strong> Profit = revenue − COGS − ad spend − return costs − platform fees − shipping. The data pipeline currently provides GMV and settlement revenue (top line) but contains no cost-of-goods, packaging cost, or aggregated ad-spend figures. Stating a profit number would require me to invent your unit costs — which violates the rule that I only cite numbers literally present in your data. The single biggest hidden drain right now is the <strong>Flipkart 53.8% May return rate</strong>: GMV counts the order, but each return strips the product margin, eats return shipping, and often renders the item unsellable. A ₹1.2L FK GMV month with 54% returns is not a ₹1.2L month — it is closer to half that in realized revenue, before you subtract any cost. This is why GMV alone is a dangerous proxy for profit on Flipkart specifically.</p>
+<div class="gap"></div>
+<p><strong>Action:</strong> Send me your average product cost per SKU (or a blended COGS %) and I will compute contribution margin per platform for May. Separately — flag for follow-up — the Flipkart 64.7%→53.8%→38.0% return rate over Apr–Jun is your largest profit leak and should be the next experiment target regardless of the profit question.</p></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Vantage correctly refused to calculate profit, properly cited all figures from data context (₹69.4K Meesho GMV, ₹1.2L FK GMV, 53.8% FK return rate, 8.8% Meesho return rate), explained why cost data is unavailable, and provided actionable next steps aligned with Stage 2 business maturity.</div>
   </div>
   <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
 </details><details class="q">
@@ -357,6 +515,43 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <div class="verdict">
     <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
     <div class="verdict-text">Vantage correctly identified Flipkart's 38–65% return rate as the single most important issue, justified it with data-backed analysis, cited actual figures from the context (64.7% Apr, 53.8% May, 38.0% Jun, 41.5% quality reason, 8.8% Meesho baseline), and provided a well-structured experiment with proper hypothesis, baseline, and 30-day evaluation window.</div>
+  </div>
+  <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
+</details><details class="q">
+  <summary>
+    <span class="arrow">&#9654;</span>
+    <span class="qid">q037</span>
+    <span class="qtext">What is the single most important thing we should fix right now?</span>
+    <span class="badge" style="color:#1a7f37;background:#dafbe1">pass</span>
+  </summary>
+  <div class="answer"><p><strong>Flipkart's return rate is structurally destroying your business — 64.7% in April, 53.8% in May, 38.0% in June — and that is the one fire to put out before anything else.</strong></p>
+<div class="gap"></div>
+<div class="tbl-wrap"><table>
+<tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>FK return rate Apr 2026</td><td>64.7% (826/1277)</td><td>Catastrophic — nearly 2 of 3 orders come back; GMV evaporates after reverse logistics</td></tr>
+<tr><td>FK return rate May 2026</td><td>53.8% (302/561)</td><td>Still in account-health danger zone; LQS and Buy Box eligibility suffer</td></tr>
+<tr><td>FK return rate Jun 2026</td><td>38.0% (98/258)</td><td>Improving but 2.5x above safe threshold (~15%)</td></tr>
+<tr><td>FK GMV trend</td><td>₹3.1L → ₹1.2L → ₹57K</td><td>Revenue collapsing in lockstep with the return drag</td></tr>
+<tr><td>Top Meesho return reason</td><td>"Quality not good" 41.5%</td><td>Same root cause likely bleeds into Flipkart — product/expectation mismatch</td></tr>
+<tr><td>Meesho return rate (comparison)</td><td>8.8–12.5%</td><td>Within tolerance — confirms the problem is FK-specific, not whole-catalog</td></tr>
+</table></div>
+<div class="gap"></div>
+<p><strong>Mechanism:</strong> Flipkart treats return rate as a first-order input to Listing Quality Score and seller account health. Above ~15%, the auction multiplier drops — meaning your ad spend buys fewer impressions at worse placements, so the same bid yields lower ROAS (you are seeing 1.34x–1.60x on dj5b/dj7b, well below the 3x floor). Returns also strip the original GMV <em>and</em> add reverse-logistics cost, so a 50%+ return rate means you are paying to ship product both ways while the algorithm simultaneously demotes the listing. This compounds: lower rank → lower organic sales → higher dependence on inefficient ads → margin erosion. Your GMV falling from ₹3.1L to ₹57K across three months is the visible symptom of this loop. The Meesho return reasons ("quality not good" at 41.5%) point to a description-vs-reality gap that is fixable at the listing level, not the product level.</p>
+<div class="gap"></div>
+<p><strong>Action:</strong> Open exp_FK_returns now — isolate the worst-returning FK SKU (start with your highest-volume ad earner dj5b, 1419 ad units) and fix one variable: replace the main listing images with accurate, true-color owner shots that match what ships. <em>Note: Flipkart provides no per-SKU return rate in your data, so baseline against the overall FK monthly rate.</em></p>
+<div class="gap"></div>
+<p><strong>exp_20260627_001</strong></p>
+<ul>
+  <li><strong>Hypothesis:</strong> If we replace dj5b's Flipkart listing images with accurate true-to-product photos, then overall FK return rate will fall from 38.0% toward 25% within 30 days, because the top return driver is a description/image-vs-reality mismatch.</li>
+  <li><strong>Change required:</strong> Re-shoot and upload corrected main + gallery images for dj5b only (single variable — do not touch title, price, or description this cycle).</li>
+  <li><strong>Baseline:</strong> FK overall return rate 38.0%, measured_on 2026-06-21 (per-SKU FK return rate unavailable).</li>
+  <li><strong>evaluate_after_days:</strong> 30</li>
+  <li><strong>category:</strong> returns</li>
+</ul></div>
+  <div class="verdict">
+    <div class="panel-label">JUDGE (claude-haiku-4-5)</div>
+    <div class="verdict-text">Correctly identifies Flipkart return rate (64.7%→53.8%→38.0%) as the single most urgent issue, cites all figures from DATA CONTEXT, provides properly formatted experiment with hypothesis/baseline/evaluate_after_days, and justifies prioritization over chronic Meesho returns and ad ROAS issues.</div>
   </div>
   <div class="annot annot-none"><span class="panel-label">JUDGE-THE-JUDGE</span> <span class="muted">No override — judge verdict accepted as-is.</span></div>
 </details></div>
@@ -1253,7 +1448,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </main>
 
 <footer class="site-footer">
-  Vantage Eval &nbsp;·&nbsp; 2026-06-27 08:13 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
+  Vantage Eval &nbsp;·&nbsp; 2026-06-27 09:08 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
 </footer>
 
 </body>
