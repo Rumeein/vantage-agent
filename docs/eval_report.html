@@ -104,6 +104,29 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   font-size: 0.75em; font-weight: 700; text-transform: uppercase;
   color: #656d76; letter-spacing: 0.04em; margin-bottom: 2px;
 }
+/* Spend section */
+.spend-section {
+  background: #fff; border: 1px solid #d0d7de; border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 20px;
+}
+.spend-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.spend-title  { font-weight: 700; font-size: 0.95em; }
+.spend-numbers { font-size: 0.9em; }
+.budget-bar-wrap {
+  background: #eaf0f6; border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 10px;
+}
+.budget-bar { height: 100%; border-radius: 6px; transition: width 0.3s; }
+details.spend-breakdown > summary {
+  cursor: pointer; list-style: none; font-size: 0.85em; color: #656d76;
+  display: flex; align-items: center; gap: 6px;
+}
+details.spend-breakdown > summary::-webkit-details-marker { display: none; }
+details.spend-breakdown[open] > summary .arrow { transform: rotate(90deg); }
+details.spend-breakdown table { border-collapse: collapse; width: 100%; font-size: 0.85em; }
+details.spend-breakdown th, details.spend-breakdown td {
+  border: 1px solid #d0d7de; padding: 5px 10px; text-align: left;
+}
+details.spend-breakdown th { background: #f6f8fa; font-weight: 600; }
 /* Footer */
 .site-footer {
   text-align: center; padding: 24px 32px; color: #656d76;
@@ -135,7 +158,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 
 <header class="site-header">
   <h1>Vantage &mdash; Eval Report</h1>
-  <span class="tagline">Generated 2026-06-27 10:10 UTC &nbsp;·&nbsp; Spend &#8377;152 of &#8377;200 &nbsp;·&nbsp; Latest result per question</span>
+  <span class="tagline">Generated 2026-06-27 13:13 UTC &nbsp;·&nbsp; Latest result per question</span>
 </header>
 
 <main class="main">
@@ -144,14 +167,33 @@ details[open] > summary .arrow { transform: rotate(90deg); }
     <div class="stat"><b>5</b><span>partial</span></div>
     <div class="stat"><b>5</b><span>fail</span></div>
     <div class="stat"><b>4</b><span>rounds run</span></div>
-    <div class="stat"><b>&#8377;152</b><span>spent</span></div>
+    <div class="stat"><b>&#8377;304</b><span>of &#8377;200 spent</span></div>
   </div>
+
+  <div class="spend-section">
+  <div class="spend-header">
+    <span class="spend-title">Budget</span>
+    <span class="spend-numbers">&#8377;304 <span class="muted">of &#8377;200 used</span> &nbsp;·&nbsp; <span style="color:#cf222e">&#8377;0 remaining</span></span>
+  </div>
+  <div class="budget-bar-wrap">
+    <div class="budget-bar" style="width:100.0%;background:#cf222e"></div>
+  </div>
+  <details class="spend-breakdown">
+    <summary><span class="arrow">&#9654;</span> Per-round breakdown</summary>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <tr><th>Round</th><th>Questions</th><th>Spend</th><th>Cost / Q</th><th>Cumulative</th></tr>
+        <tr><td>2026-06-25  ·  Campaign Round 1</td><td>40</td><td>&#8377;180</td><td>&#8377;4</td><td>&#8377;180</td></tr><tr><td>2026-06-27  ·  Campaign Round 2</td><td>6</td><td>&#8377;41</td><td>&#8377;7</td><td>&#8377;221</td></tr><tr><td>2026-06-27  ·  Campaign Round 3</td><td>6</td><td>&#8377;41</td><td>&#8377;7</td><td>&#8377;261</td></tr><tr><td>2026-06-27  ·  Campaign Round 4</td><td>6</td><td>&#8377;43</td><td>&#8377;7</td><td>&#8377;304</td></tr>
+      </table>
+    </div>
+  </details>
+</div>
 
   <details class="run" open>
   <summary>
     <span class="arrow">&#9654;</span>
     <span class="run-label">2026-06-27  ·  Campaign Round 4</span>
-    <span class="run-meta">5/6 pass · 1 partial <span class="muted">· claude-opus-4-8</span></span>
+    <span class="run-meta">5/6 pass · 1 partial · ₹43 <span class="muted">· claude-opus-4-8</span></span>
   </summary>
   <div class="run-body"><details class="q">
   <summary>
@@ -419,7 +461,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <summary>
     <span class="arrow">&#9654;</span>
     <span class="run-label">2026-06-27  ·  Campaign Round 3</span>
-    <span class="run-meta">5/6 pass · 1 fail <span class="muted">· claude-opus-4-8</span></span>
+    <span class="run-meta">5/6 pass · 1 fail · ₹41 <span class="muted">· claude-opus-4-8</span></span>
   </summary>
   <div class="run-body"><details class="q">
   <summary>
@@ -622,7 +664,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <summary>
     <span class="arrow">&#9654;</span>
     <span class="run-label">2026-06-27  ·  Campaign Round 2</span>
-    <span class="run-meta">5/6 pass · 1 fail <span class="muted">· claude-opus-4-8</span></span>
+    <span class="run-meta">5/6 pass · 1 fail · ₹41 <span class="muted">· claude-opus-4-8</span></span>
   </summary>
   <div class="run-body"><details class="q">
   <summary>
@@ -836,7 +878,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
   <summary>
     <span class="arrow">&#9654;</span>
     <span class="run-label">2026-06-25  ·  Campaign Round 1</span>
-    <span class="run-meta">30/40 pass · 4 partial · 6 fail <span class="muted">· claude-opus-4-8</span></span>
+    <span class="run-meta">30/40 pass · 4 partial · 6 fail · ₹180 <span class="muted">· claude-opus-4-8</span></span>
   </summary>
   <div class="run-body"><details class="q">
   <summary>
@@ -1676,7 +1718,7 @@ details[open] > summary .arrow { transform: rotate(90deg); }
 </main>
 
 <footer class="site-footer">
-  Vantage Eval &nbsp;·&nbsp; 2026-06-27 10:10 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
+  Vantage Eval &nbsp;·&nbsp; 2026-06-27 13:13 UTC &nbsp;·&nbsp; noindex &mdash; not indexed by search engines
 </footer>
 
 </body>
