@@ -85,6 +85,13 @@ def _latest_per_question(rows: list) -> dict:
     return latest
 
 
+def _ts_add_minutes(ts: str, minutes: int) -> str:
+    """Return ISO timestamp string shifted by +minutes."""
+    from datetime import timedelta
+    dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+    return (dt + timedelta(minutes=minutes)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
 def _group_by_run(rows: list) -> list:
     """
     Group rows into distinct invocation runs.
@@ -93,14 +100,25 @@ def _group_by_run(rows: list) -> list:
     Old rows without run_id are clustered by time gap: a gap > 10 min = new run.
     Returns list of run dicts sorted newest-first, with a global campaign_round number.
     """
+    # Split legacy rows (no run_id) into runs using a 30-min gap heuristic
+    legacy = sorted([r for r in rows if not r.get('run_id')], key=lambda x: x['ts'])
+    legacy_runs = []
+    current = []
+    for r in legacy:
+        if current and r['ts'] > _ts_add_minutes(current[-1]['ts'], 30):
+            legacy_runs.append(current)
+            current = []
+        current.append(r)
+    if current:
+        legacy_runs.append(current)
+
     buckets = defaultdict(list)
+    for run_rows in legacy_runs:
+        key = f"legacy_{run_rows[0]['ts']}"
+        buckets[key].extend(run_rows)
     for r in rows:
-        run_id = r.get('run_id')
-        if run_id:
-            buckets[run_id].append(r)
-        else:
-            # Legacy: use date+round as proxy key
-            buckets[f"{r.get('ts','')[:10]}_r{r.get('round', 0)}"].append(r)
+        if r.get('run_id'):
+            buckets[r['run_id']].append(r)
 
     runs = []
     for key, rrows in buckets.items():
