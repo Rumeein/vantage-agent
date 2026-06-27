@@ -1,0 +1,16 @@
+[
+  {
+    "id": "q037",
+    "date": "2026-06-26",
+    "round": 1,
+    "classification": "STALE RUBRIC",
+    "note": "Rubric hard-coded FK return rate as #1 priority. But Meesho showed 331→0 orders — a live revenue emergency. Vantage correctly prioritised the sudden collapse over a chronic issue. Answer was superior to the rubric. Rubric updated."
+  },
+  {
+    "id": "q001",
+    "date": "2026-06-27",
+    "round": 1,
+    "classification": "JUDGE ERROR",
+    "note": "Judge claimed ROAS figures (3.74x, 1.60x, 1.34x, 4.67x, 0.97x–7.11x) were not in the data context. They ARE — brief lines 22–35 list per-SKU ROAS and campaign daily ROAS explicitly. Haiku misread the dense brief format even with data context injected. Vantage answer is correct."
+  }
+]
